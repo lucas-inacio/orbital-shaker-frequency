@@ -11,13 +11,19 @@ class Orientation {
             accelerometer: null,
             x: 0,
             y: 0,
-            z: 0,
             freq: 0,
             accu: 0,
-            samples: []
+            samplesx: [],
+            samplesy: []
         }
 
         Accelerometer.setUpdateInterval(UPDATE_INTERVAL_SEC * 1000);
+    }
+
+    computeSignalSpectrum(signal) {
+        const spectrum = this.getSpectrum(signal);
+        const frequency = this.dominantFrequency(spectrum);
+        return frequency;
     }
 
     getSpectrum (points, samplingFreq=60) {
@@ -47,37 +53,40 @@ class Orientation {
     _subscribe() {
         const sub = Accelerometer.addListener(accelerometerData => {
             if (accelerometerData.x === NaN ||
-                accelerometerData.y === NaN ||
-                accelerometerData.z === NaN) {
+                accelerometerData.y === NaN) {
             
                 return;
             }
     
             this.data.x = accelerometerData.x;
             this.data.y = accelerometerData.y;
-            this.data.z = accelerometerData.z;
-
             
             this.data.accu += UPDATE_INTERVAL_SEC;
-            this.data.samples.push({x: this.data.accu, y: this.data.x});
+            this.data.samplesx.push({x: this.data.accu, y: this.data.x});
+            this.data.samplesy.push({x: this.data.accu, y: this.data.y});
             
-            if (this.data.samples.length > MAX_SAMPLES) {
-                this.data.samples.splice(0, 1);
+            if (this.data.samplesx.length > MAX_SAMPLES) {
+                this.data.samplesx.splice(0, 1);
             }
 
-            const spectrum = this.getSpectrum(this.data.samples);
-            const frequency = this.dominantFrequency(spectrum);
-            this.data.freq = frequency;
+            if (this.data.samplesy.length > MAX_SAMPLES) {
+                this.data.samplesy.splice(0, 1);
+            }
+
+            let freq1 = this.computeSignalSpectrum(this.data.samplesx);
+            let freq2 = this.computeSignalSpectrum(this.data.samplesy);
+            this.data.freq = Math.max(freq1 + freq2);
         });
 
         this.data.accelerometer = sub;
         this.data.x = 0
         this.data.y = 0;
-        this.data.z = 0;
         this.data.freq = 0;
         this.data.accu = 0;
-        this.data.samples = [];
-        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samples.push({x: 0, y: 0});
+        this.data.samplesx = [];
+        this.data.samplesy = [];
+        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samplesx.push({x: 0, y: 0});
+        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samplesy.push({x: 0, y: 0});
     }
 
     _unsubscribe() {

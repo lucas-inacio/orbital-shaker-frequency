@@ -11,7 +11,6 @@ class App extends React.Component {
         this.state = {
           x: 0,
           y: 0,
-          z: 0,
           freq: 0,
           interval: null
         };
@@ -23,7 +22,6 @@ class App extends React.Component {
             this.setState({
                 x: orientation.data.x,
                 y: orientation.data.y,
-                z: orientation.data.z,
                 freq: orientation.data.freq
             });
         }, POLL_INTERVAL_MS);
