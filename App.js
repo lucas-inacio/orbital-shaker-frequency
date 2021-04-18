@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Orientation from './Orientation';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
@@ -17,6 +18,7 @@ class App extends React.Component {
     }
 
     start() {
+        activateKeepAwake();
         orientation._subscribe();
         const interval = setInterval(() => {
             this.setState({
@@ -30,6 +32,7 @@ class App extends React.Component {
     }
 
     stop() {
+        deactivateKeepAwake();
         orientation._unsubscribe();
         this.state.interval && clearInterval(this.state.interval);
         this.setState({interval: null});
