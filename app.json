@@ -23,10 +23,13 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.lucasiv.orbitalshakerfrequency"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "description": "Measure frequency of an orbital shaker using your smartphone.",
+    "githubUrl": "https://github.com/lucas-inacio/orbital-shaker-frequency.git"
   }
 }
