@@ -75,7 +75,7 @@ class Orientation {
 
             let freq1 = this.computeSignalSpectrum(this.data.samplesx);
             let freq2 = this.computeSignalSpectrum(this.data.samplesy);
-            this.data.freq = Math.max(freq1 + freq2);
+            this.data.freq = Math.max(freq1, freq2);
         });
 
         this.data.accelerometer = sub;

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { Button, Dimensions, StyleSheet, Text, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { ProcessingView } from 'expo-processing';
+import Curve from './Curve';
 
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
@@ -52,27 +53,11 @@ class App extends React.Component {
         );
     }
 
-    _sketch = (p) => {
-        // const samples = [];
-        // let accu = 0;
-        // let width = p.windowWidth;
-        // let height = 720;
-        // let params = {
-        //     a : 0.5,
-        //     aMin: 0.0,
-        //     aMax: 1,
-        //     aStep: 0.1,
-        //     b: 0.3,
-        //     bMin: 0.0,
-        //     bMax: 6,
-        //     bStep: 0.1
-        // };
-        // let lastTimestamp = 0;
-        // let curve, curve2;
-        // const yMax = 7;
-        // let gui;
+    _sketch = p => {
 
+        let curve1;
         p.setup = () => {
+            curve1 = new Curve(p, 50, 50, Dimensions.get('window').width, Dimensions.get('window').width);
             p.frameRate(24);
         }
 
@@ -102,8 +87,9 @@ class App extends React.Component {
         
         p.draw = () => {
             p.background(255);
+            curve1.draw(orientation.data.samplesx);
         }
-    }
+    };
 }
 
 
@@ -125,7 +111,6 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        minWidth: 120,
         alignItems: 'center',
         backgroundColor: '#0497c4'
     },
