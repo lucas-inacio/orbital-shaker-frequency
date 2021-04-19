@@ -15,7 +15,8 @@ class App extends React.Component {
           x: 0,
           y: 0,
           freq: 0,
-          interval: null
+          interval: null,
+          time: 0
         };
     }
 
@@ -26,7 +27,8 @@ class App extends React.Component {
             this.setState({
                 x: orientation.data.x,
                 y: orientation.data.y,
-                freq: orientation.data.freq
+                freq: orientation.data.freq,
+                time: orientation.data.accu
             });
         }, POLL_INTERVAL_MS);
 
@@ -45,10 +47,13 @@ class App extends React.Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.text}>
-                {'' + (Math.round(this.state.freq * 100) / 100)}
+                    {'' + (Math.round(this.state.freq * 100) / 100) + 'Hz'}
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
                 <ProcessingView style={styles.canvas} sketch={this._sketch} />
+                <Text style={styles.footer}>
+                    {'Tempo: ' + Math.round(this.state.time * 10) / 10 + 's'}
+                </Text>
             </View>
         );
     }
@@ -57,33 +62,9 @@ class App extends React.Component {
 
         let curve1;
         p.setup = () => {
-            curve1 = new Curve(p, 50, 50, Dimensions.get('window').width, Dimensions.get('window').width);
+            curve1 = new Curve(p, 180, 100, Dimensions.get('window').width, Dimensions.get('window').width);
             p.frameRate(24);
         }
-
-        // p.dominantFrequency = (spectrum) => {
-        //     let biggest = 0;
-        //     for (let i = 1; i < spectrum.length; ++i) {
-        //         if (spectrum[i].y > spectrum[biggest].y)
-        //             biggest = i;
-        //     }
-        //     return spectrum[biggest].x;
-        // }
-
-        // p.getSpectrum = (points, samplingFreq=60) => {
-        //     let signal = []
-        //     for (point of points)
-        //         signal.push(point.y);
-
-        //     let fft = new FFT(signal.length, samplingFreq);
-        //     fft.forward(signal);
-
-        //     let spectrum = [];
-        //     for (let i = 0; i < fft.spectrum.length; ++i) {
-        //         spectrum.push({x: i / (points[points.length - 1].x - points[0].x), y: fft.spectrum[i]});
-        //     }
-        //     return spectrum;
-        // }
         
         p.draw = () => {
             p.background(255);
@@ -117,6 +98,10 @@ const styles = StyleSheet.create({
     text: {
         flex: 1,
         fontSize: 100
+    },
+    footer: {
+        flex: 1,
+        fontSize: 20
     },
     canvas: {
         flex: 3,
