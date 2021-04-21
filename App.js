@@ -55,19 +55,20 @@ class App extends React.Component {
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
                 <View style={styles.canvas} onLayout={(e) => {
-                    x = 20;
+                    x = 100;
 
                     pixelRatio = PixelRatio.get();
                     screenWidth = e.nativeEvent.layout.width * pixelRatio;
                     screenHeight = e.nativeEvent.layout.height * pixelRatio;
                     width = screenWidth - 2 * x;
-                    height = screenHeight / 2;
+                    height = screenHeight / 3;
                     this.setState({ canvasWidth: width, canvasHeight: height, canvasX: x, canvasY: x });
                 }}>
                     { (this.state.canvasHeight && this.state.canvasWidth) ? <ProcessingView sketch={this._sketch} /> : null }
                 </View>
                 <Text style={styles.footer}>
-                    {'Tempo: ' + Math.round(this.state.time * 10) / 10 + 's'}
+                    {'Tempo: ' + Math.round(this.state.time * 10) / 10 + 's\n'}
+                    {'RPM: ' + Math.round(this.state.freq * 60 * 10) / 10 + '\n'}
                 </Text>
             </View>
         );
@@ -76,18 +77,29 @@ class App extends React.Component {
     _sketch = p => {
 
         let curve1;
+        let curve2;
         p.setup = () => {
+            p.frameRate(30);
+
             curve1 = new Curve(
                 p, this.state.canvasX, this.state.canvasY,
                 this.state.canvasWidth, this.state.canvasHeight);
             curve1.setType(curve1.TYPE_BAR);
-            curve1.setLineColor(0, 0, 255);
-            p.frameRate(30);
+            curve1.setLineColor(252, 3, 61);
+            curve1.setLineWeight(6);
+
+            curve2 = new Curve(
+                p, this.state.canvasX, this.state.canvasY + this.state.canvasHeight + 50,
+                this.state.canvasWidth, this.state.canvasHeight);
+            curve2.setType(curve2.TYPE_LINE);
+            curve2.setLineColor(252, 3, 61);
+            curve2.setLineWeight(6);
         }
         
         p.draw = () => {
             p.background(255);
             curve1.draw(orientation.data.spectrum);
+            curve2.draw(orientation.data.freqHistory);
         }
     };
 }

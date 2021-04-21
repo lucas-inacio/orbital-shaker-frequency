@@ -31,25 +31,34 @@ class Curve {
         }
     }
 
-    _drawLine(x, y) {
-        this.pInstance.vertex(x, y);
-    }
-
-    _drawBar(x, y) {
-        this.pInstance.line(x, this.y + this.height / 2, x, y);
-    }
-
-    drawCurve(samples) {
+    _drawLine(samples) {
         const size = samples.length;
         const step = this.width / size;
-        
-        // Draws the curve
-        this.pInstance.noFill();
-        this.pInstance.stroke(
-            this.properties.lineColor.r,
-            this.properties.lineColor.g,
-            this.properties.lineColor.b);
         this.pInstance.beginShape();
+        
+        for (let i = 0; i < size; ++i) {
+            const xCoord = i * step;
+            const yCoord = samples[i].y * (this.height / 2 - this.margin);
+            const ySignal = (yCoord / Math.abs(yCoord)) || 0;
+            yCoord = Math.abs(yCoord);
+
+            // Don't go beyond the limits
+            if (xCoord >= (this.width - this.margin)) break;
+            if (yCoord > (this.height / 2 - this.margin)) {
+                yCoord -= (yCoord - (this.height / 2 - this.margin));
+            }
+
+            this.pInstance.vertex(                
+                this.margin + this.x + i * step,
+                this.y + this.height / 2 - ySignal * yCoord);
+        }
+            
+        this.pInstance.endShape();
+    }
+
+    _drawBar(samples) {
+        const size = samples.length;
+        const step = this.width / size;
         
         for (let i = 0; i < size; ++i) {
             const xCoord = i * step;
@@ -63,12 +72,45 @@ class Curve {
                 yCoord -= (yCoord - (this.height / 2 - this.margin));
             }
 
-            this.drawCurveRef(
-                this.margin + this.x + i * step,
-                this.y + this.height / 2 - ySignal * yCoord);
+            x = this.margin + this.x + i * step;
+            y = this.y + this.height / 2 - ySignal * yCoord;
+            this.pInstance.line(x, this.y + this.height / 2, x, y);
         }
+
+        // this.pInstance.line(x, this.y + this.height / 2, x, y);
+    }
+
+    drawCurve(samples) {
+        // const size = samples.length;
+        // const step = this.width / size;
+        
+        // Draws the curve
+        this.pInstance.noFill();
+        this.pInstance.stroke(
+            this.properties.lineColor.r,
+            this.properties.lineColor.g,
+            this.properties.lineColor.b);
+        this.drawCurveRef(samples);
+        // this.pInstance.beginShape();
+        
+        // for (let i = 0; i < size; ++i) {
+        //     const xCoord = i * step;
+        //     const yCoord = samples[i].y * (this.height / 2 - this.margin);
+        //     const ySignal = yCoord / Math.abs(yCoord);
+        //     yCoord = Math.abs(yCoord);
+
+        //     // Don't go beyond the limits
+        //     if (xCoord >= (this.width - this.margin)) break;
+        //     if (yCoord > (this.height / 2 - this.margin)) {
+        //         yCoord -= (yCoord - (this.height / 2 - this.margin));
+        //     }
+
+        //     this.drawCurveRef(
+        //         this.margin + this.x + i * step,
+        //         this.y + this.height / 2 - ySignal * yCoord);
+        // }
             
-        this.pInstance.endShape();
+        // this.pInstance.endShape();
     }
 
     drawFrame() {
@@ -98,6 +140,10 @@ class Curve {
         this.properties.frameColor.r = r;
         this.properties.frameColor.g = g;
         this.properties.frameColor.b = b;
+    }
+
+    setLineWeight(weight) {
+        this.properties.lineWeight = weight;
     }
 }
 
