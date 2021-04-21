@@ -14,7 +14,8 @@ class Orientation {
             freq: 0,
             accu: 0,
             samples: [],
-            spectrum: []
+            spectrum: [],
+            freqHistory: []
         }
 
         Accelerometer.setUpdateInterval(UPDATE_INTERVAL_SEC * 1000);
@@ -68,9 +69,14 @@ class Orientation {
             if (this.data.samples.length > MAX_SAMPLES) {
                 this.data.samples.splice(0, this.data.samples.length - MAX_SAMPLES);
             }
-
+            
             let freq = this.computeSignalSpectrum(this.data.samples);
             this.data.freq = freq;
+
+            this.data.freqHistory.push({x: this.data.accu, y: this.data.freq / MAX_BAND * 2});
+            if (this.data.freqHistory.length > MAX_SAMPLES) {
+                this.data.freqHistory.splice(0, this.data.freqHistory.length - MAX_SAMPLES);
+            }
         });
 
         this.data.accelerometer = sub;
@@ -80,8 +86,10 @@ class Orientation {
         this.data.accu = 0;
         this.data.samples = [];
         this.data.spectrum = [];
+        this.data.freqHistory = [];
         for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samples.push({x: 0, y: 0});
         for (let i = 0; i < MAX_BAND; ++i) this.data.spectrum.push({x: 0, y: 0});
+        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.freqHistory.push({x: 0, y: 0});
     }
 
     _unsubscribe() {
