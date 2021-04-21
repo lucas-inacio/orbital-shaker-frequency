@@ -24,7 +24,7 @@ class Curve {
 
             // Don't go beyond the limits
             if (xCoord >= (this.width - this.margin)) break;
-            if (yCoord >= (this.height / 2 - this.margin)) {
+            if (yCoord > (this.height / 2 - this.margin)) {
                 yCoord -= (yCoord - (this.height / 2 - this.margin));
             }
 
