@@ -33,11 +33,11 @@ class Curve {
     }
 
     setNumXMarks(size) {
-        this.properties.numXMarks = size;
+        this.properties.numXMarks = (size >= 2) ? size : 2;
     }
     
     setNumYMarks(size) {
-        this.properties.numYMarks = size;
+        this.properties.numYMarks = (size >= 2) ? size : 2;
     }
 
     setType(type) {
@@ -54,7 +54,7 @@ class Curve {
 
     _drawLine(samples) {
         const size = samples.length;
-        const step = this.width / size;
+        const step = (this.width -  2 * this.margin) / size;
         this.pInstance.beginShape();
         
         for (let i = 0; i < size; ++i) {
@@ -122,21 +122,23 @@ class Curve {
         this.pInstance.line(this.x + this.margin, this.y + this.height / 2, this.x + this.width - this.margin, this.y + this.height / 2);
 
         // Draws marks on axes
+        this.pInstance.strokeWeight(3);
         if (this.properties.showXMark) {
             const step = (this.width - 2 * this.margin) / this.properties.numXMarks;
 
+            y = this.y + this.height / 2;
             for (let i = 1; i < this.properties.numXMarks; ++i) {
                 x = this.x + this.margin + i * step;
-                y = this.y + this.height / 2;
                 this.pInstance.line(x, y + this.MARK_SIZE, x, y - this.MARK_SIZE);
             }
         }
 
         if (this.properties.showYMark) {
-            const step = this.height / this.properties.numYMarks;
-
+            const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
+            x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
-                x = this.x + margin
+                y = this.y + this.margin + i * step;
+                this.pInstance.line(x - this.MARK_SIZE, y, x + this.MARK_SIZE, y);
             }
         }
     }
@@ -144,7 +146,7 @@ class Curve {
     draw(samples) {
         this.pInstance.strokeWeight(this.properties.lineWeight);
         this.drawCurve(samples);
-        this.drawFrame(samples);
+        this.drawFrame();
     }
 
     setLineColor(r, g, b) {
