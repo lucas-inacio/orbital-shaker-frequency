@@ -83,17 +83,23 @@ class App extends React.Component {
 
             curve1 = new Curve(
                 p, this.state.canvasX, this.state.canvasY,
-                this.state.canvasWidth, this.state.canvasHeight);
+                this.state.canvasWidth, this.state.canvasHeight
+            );
             curve1.setType(curve1.TYPE_BAR);
             curve1.setLineColor(252, 3, 61);
             curve1.setLineWeight(6);
-
+            curve1.showXMark(true);
+            curve1.setNumXMarks(3);
+            
             curve2 = new Curve(
                 p, this.state.canvasX, this.state.canvasY + this.state.canvasHeight + 50,
-                this.state.canvasWidth, this.state.canvasHeight);
+                this.state.canvasWidth, this.state.canvasHeight
+            );
             curve2.setType(curve2.TYPE_LINE);
             curve2.setLineColor(252, 3, 61);
             curve2.setLineWeight(6);
+            curve2.showYMark(true);
+            curve2.setNumYMarks(4);
         }
         
         p.draw = () => {
