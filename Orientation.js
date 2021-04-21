@@ -1,9 +1,9 @@
 import { Accelerometer } from "expo-sensors";
 import { FFT } from './lib/dsp/dsp';
 
-const G = 9.81;
 const UPDATE_INTERVAL_SEC = 0.016;
 const MAX_SAMPLES = 128;
+const MAX_BAND = 20;
 
 class Orientation {
     constructor() {
@@ -13,8 +13,8 @@ class Orientation {
             y: 0,
             freq: 0,
             accu: 0,
-            samplesx: [],
-            samplesy: []
+            samples: [],
+            spectrum: []
         }
 
         Accelerometer.setUpdateInterval(UPDATE_INTERVAL_SEC * 1000);
@@ -23,6 +23,7 @@ class Orientation {
     computeSignalSpectrum(signal) {
         const spectrum = this.getSpectrum(signal);
         const frequency = this.dominantFrequency(spectrum);
+        this.data.spectrum = spectrum;
         return frequency;
     }
 
@@ -35,7 +36,7 @@ class Orientation {
         fft.forward(signal);
 
         let spectrum = [];
-        for (let i = 0; i < fft.spectrum.length; ++i) {
+        for (let i = 0; i < fft.spectrum.length && i < MAX_BAND; ++i) {
             spectrum.push({x: i / (points[points.length - 1].x - points[0].x), y: fft.spectrum[i]});
         }
         return spectrum;
@@ -62,20 +63,14 @@ class Orientation {
             this.data.y = accelerometerData.y;
             
             this.data.accu += UPDATE_INTERVAL_SEC;
-            this.data.samplesx.push({x: this.data.accu, y: this.data.x});
-            this.data.samplesy.push({x: this.data.accu, y: this.data.y});
+            this.data.samples.push({x: this.data.accu, y: this.data.x + this.data.y});
             
-            if (this.data.samplesx.length > MAX_SAMPLES) {
-                this.data.samplesx.splice(0, this.data.samplesx.length - MAX_SAMPLES);
+            if (this.data.samples.length > MAX_SAMPLES) {
+                this.data.samples.splice(0, this.data.samples.length - MAX_SAMPLES);
             }
 
-            if (this.data.samplesy.length > MAX_SAMPLES) {
-                this.data.samplesy.splice(0, this.data.samplesy.length > MAX_SAMPLES);
-            }
-
-            let freq1 = this.computeSignalSpectrum(this.data.samplesx);
-            let freq2 = this.computeSignalSpectrum(this.data.samplesy);
-            this.data.freq = Math.max(freq1, freq2);
+            let freq = this.computeSignalSpectrum(this.data.samples);
+            this.data.freq = freq;
         });
 
         this.data.accelerometer = sub;
@@ -83,10 +78,10 @@ class Orientation {
         this.data.y = 0;
         this.data.freq = 0;
         this.data.accu = 0;
-        this.data.samplesx = [];
-        this.data.samplesy = [];
-        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samplesx.push({x: 0, y: 0});
-        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samplesy.push({x: 0, y: 0});
+        this.data.samples = [];
+        this.data.spectrum = [];
+        for (let i = 0; i < MAX_SAMPLES; ++i) this.data.samples.push({x: 0, y: 0});
+        for (let i = 0; i < MAX_BAND; ++i) this.data.spectrum.push({x: 0, y: 0});
     }
 
     _unsubscribe() {
