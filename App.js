@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Button, Dimensions, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { ProcessingView } from 'expo-processing';
@@ -16,7 +16,11 @@ class App extends React.Component {
           y: 0,
           freq: 0,
           interval: null,
-          time: 0
+          time: 0,
+          canvasWidth: null,
+          canvasHeight: null,
+          canvasX: null,
+          canvasY : null
         };
     }
 
@@ -50,7 +54,18 @@ class App extends React.Component {
                     {'' + (Math.round(this.state.freq * 100) / 100) + 'Hz'}
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
-                <ProcessingView style={styles.canvas} sketch={this._sketch} />
+                <View style={styles.canvas} onLayout={(e) => {
+                    x = 20;
+
+                    pixelRatio = PixelRatio.get();
+                    screenWidth = e.nativeEvent.layout.width * pixelRatio;
+                    screenHeight = e.nativeEvent.layout.height * pixelRatio;
+                    width = screenWidth - 2 * x;
+                    height = screenHeight / 2;
+                    this.setState({ canvasWidth: width, canvasHeight: height, canvasX: x, canvasY: x });
+                }}>
+                    { (this.state.canvasHeight && this.state.canvasWidth) ? <ProcessingView sketch={this._sketch} /> : null }
+                </View>
                 <Text style={styles.footer}>
                     {'Tempo: ' + Math.round(this.state.time * 10) / 10 + 's'}
                 </Text>
@@ -62,8 +77,10 @@ class App extends React.Component {
 
         let curve1;
         p.setup = () => {
-            curve1 = new Curve(p, 180, 100, Dimensions.get('window').width, Dimensions.get('window').width);
-            p.frameRate(24);
+            curve1 = new Curve(
+                p, this.state.canvasX, this.state.canvasY,
+                this.state.canvasWidth, this.state.canvasHeight);
+            p.frameRate(30);
         }
         
         p.draw = () => {

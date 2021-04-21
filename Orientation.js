@@ -66,11 +66,11 @@ class Orientation {
             this.data.samplesy.push({x: this.data.accu, y: this.data.y});
             
             if (this.data.samplesx.length > MAX_SAMPLES) {
-                this.data.samplesx.splice(0, 1);
+                this.data.samplesx.splice(0, this.data.samplesx.length - MAX_SAMPLES);
             }
 
             if (this.data.samplesy.length > MAX_SAMPLES) {
-                this.data.samplesy.splice(0, 1);
+                this.data.samplesy.splice(0, this.data.samplesy.length > MAX_SAMPLES);
             }
 
             let freq1 = this.computeSignalSpectrum(this.data.samplesx);
