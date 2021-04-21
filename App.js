@@ -87,6 +87,7 @@ class App extends React.Component {
             curve1.setType(curve1.TYPE_BAR);
             curve1.setLineColor(252, 3, 61);
             curve1.setLineWeight(6);
+            curve1.showXMark(true);
 
             curve2 = new Curve(
                 p, this.state.canvasX, this.state.canvasY + this.state.canvasHeight + 50,
