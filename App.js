@@ -51,7 +51,7 @@ class App extends React.Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.text}>
-                    {'' + (Math.round(this.state.freq * 100) / 100) + 'Hz'}
+                    {'' + (Math.round(this.state.freq * 10) / 10) + 'Hz'}
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
                 <View style={styles.canvas} onLayout={(e) => {
@@ -80,12 +80,14 @@ class App extends React.Component {
             curve1 = new Curve(
                 p, this.state.canvasX, this.state.canvasY,
                 this.state.canvasWidth, this.state.canvasHeight);
+            curve1.setType(curve1.TYPE_BAR);
+            curve1.setLineColor(0, 0, 255);
             p.frameRate(30);
         }
         
         p.draw = () => {
             p.background(255);
-            curve1.draw(orientation.data.samplesx);
+            curve1.draw(orientation.data.spectrum);
         }
     };
 }
