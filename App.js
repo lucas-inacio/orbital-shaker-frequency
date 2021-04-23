@@ -47,6 +47,9 @@ class App extends React.Component {
     }
 
     render() {
+        const totalTime = Math.round((this.state.time - orientation.STABILIZATION_TIME_SEC) * 10) / 10;
+        const maxRPM = Math.round(orientation.data.freqTop * 60);
+        const meanRPM = (Math.round(orientation.data.freqSum * 60 / orientation.data.totalSamples * 10) / 10) || 0;
 
         return (
             <View style={styles.container}>
@@ -67,8 +70,11 @@ class App extends React.Component {
                     { (this.state.canvasHeight && this.state.canvasWidth) ? <ProcessingView sketch={this._sketch} /> : null }
                 </View>
                 <Text style={styles.footer}>
-                    {'Tempo: ' + Math.round(this.state.time * 10) / 10 + 's\n'}
-                    {'RPM: ' + Math.round(this.state.freq * 60 * 10) / 10 + '\n'}
+                    {
+                        (this.state.interval) ? 
+                            ('Tempo: ' + ((totalTime > 0) ? (totalTime + 's\nRPM: ') : 'estabilizando...\nRPM: ') + Math.round(this.state.freq * 60 * 10) / 10 + '\n') :
+                            ('Tempo total: ' + ((totalTime > 0) ? totalTime :  0) + 's\nRPM máximo: ' + maxRPM + '\nRPM médio: ' + meanRPM)
+                    }
                 </Text>
             </View>
         );
