@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "expo": "~40.0.0",
+    "expo-2d-context": "0.0.2",
     "expo-gl": "~9.2.0",
     "expo-keep-awake": "~8.4.0",
     "expo-processing": "^2.0.2",

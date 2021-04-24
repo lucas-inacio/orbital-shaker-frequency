@@ -3,9 +3,9 @@ import { FFT } from './lib/dsp/dsp';
 
 class Orientation {
     STABILIZATION_TIME_SEC = 4;
-    UPDATE_INTERVAL_SEC = 0.016;
+    UPDATE_INTERVAL_SEC = 0.015625; // 1/64
     MAX_SAMPLES = 128;
-    MAX_BAND = 20;
+    SAMPLING_FREQ = 64;
     constructor() {
         this.data = {
             accelerometer: null,
@@ -26,13 +26,15 @@ class Orientation {
     }
 
     computeSignalSpectrum(signal) {
-        const spectrum = this.getSpectrum(signal);
-        const frequency = this.dominantFrequency(spectrum);
-        this.data.spectrum = spectrum;
+        // const spectrum = this.getSpectrum(signal);
+        // const frequency = this.dominantFrequency(spectrum);
+        this.getSpectrum(signal);
+        const frequency = this.dominantFrequency();
+        // this.data.spectrum = spectrum;
         return frequency;
     }
 
-    getSpectrum (points, samplingFreq=60) {
+    getSpectrum (points, samplingFreq=64) {
         let signal = []
         for (point of points)
             signal.push(point.y);
@@ -40,20 +42,22 @@ class Orientation {
         let fft = new FFT(signal.length, samplingFreq);
         fft.forward(signal);
 
-        let spectrum = [];
-        for (let i = 0; i < fft.spectrum.length && i < this.MAX_BAND; ++i) {
-            spectrum.push({x: i / (points[points.length - 1].x - points[0].x), y: fft.spectrum[i]});
+        // let spectrum = [];
+        // First 64 samples
+        for (let i = 0; i < fft.spectrum.length / 2; ++i) {
+            // spectrum.push({x: i / 2, y: fft.spectrum[i]});
+            this.data.spectrum[i] = {x: i / 2, y: fft.spectrum[i]};
         }
-        return spectrum;
+        // return spectrum;
     }
 
-    dominantFrequency(spectrum) {
+    dominantFrequency(/*spectrum*/) {
         let biggest = 0;
-        for (let i = 1; i < spectrum.length; ++i) {
-            if (spectrum[i].y > spectrum[biggest].y)
+        for (let i = 1; i < this.data.spectrum.length; ++i) {
+            if (this.data.spectrum[i].y > this.data.spectrum[biggest].y)
                 biggest = i;
         }
-        return spectrum[biggest].x;
+        return this.data.spectrum[biggest].x;
     }
 
     _subscribe() {
@@ -81,7 +85,7 @@ class Orientation {
             let freq = this.computeSignalSpectrum(this.data.samples);
             this.data.freq = freq;
 
-            this.data.freqHistory.push({x: this.data.accu, y: this.data.freq / this.MAX_BAND * 2});
+            this.data.freqHistory.push({x: this.data.accu, y: this.data.freq});
             if (this.data.freqHistory.length > this.MAX_SAMPLES) {
                 this.data.freqHistory.splice(0, this.data.freqHistory.length - this.MAX_SAMPLES);
             }
@@ -105,7 +109,7 @@ class Orientation {
         this.data.freqTop = 0;
         this.data.totalSamples = 0;
         for (let i = 0; i < this.MAX_SAMPLES; ++i) this.data.samples.push({x: 0, y: 0});
-        for (let i = 0; i < this.MAX_BAND; ++i) this.data.spectrum.push({x: 0, y: 0});
+        for (let i = 0; i < this.SAMPLING_FREQ; ++i) this.data.spectrum.push({x: 0, y: 0});
         for (let i = 0; i < this.MAX_SAMPLES; ++i) this.data.freqHistory.push({x: 0, y: 0});
     }
 
