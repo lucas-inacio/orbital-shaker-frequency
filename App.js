@@ -1,8 +1,9 @@
 import React from 'react';
-import { Button, Dimensions, PixelRatio, StyleSheet, Text, View } from 'react-native';
+import { Button, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
-import { ProcessingView } from 'expo-processing';
+import { GLView } from 'expo-gl';
+import Expo2DContext from 'expo-2d-context';
 import Curve from './Curve';
 
 const POLL_INTERVAL_MS = 200;
@@ -22,6 +23,8 @@ class App extends React.Component {
           canvasX: null,
           canvasY : null
         };
+        // Used to normalize the plots
+        this.frequencyFactor = 1 / orientation.SAMPLING_FREQ;
     }
 
     start() {
@@ -58,16 +61,14 @@ class App extends React.Component {
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
                 <View style={styles.canvas} onLayout={(e) => {
-                    x = 100;
+                    let x = 100;
 
-                    pixelRatio = PixelRatio.get();
-                    screenWidth = e.nativeEvent.layout.width * pixelRatio;
-                    screenHeight = e.nativeEvent.layout.height * pixelRatio;
-                    width = screenWidth - 2 * x;
-                    height = screenHeight / 3;
-                    this.setState({ canvasWidth: width, canvasHeight: height, canvasX: x, canvasY: x });
+                    let pixelRatio = PixelRatio.get();
+                    let screenWidth = e.nativeEvent.layout.width * pixelRatio;
+                    let screenHeight = e.nativeEvent.layout.height * pixelRatio;
+                    this.setState({ canvasWidth: screenWidth, canvasHeight: screenHeight, canvasX: x, canvasY: x });
                 }}>
-                    { (this.state.canvasHeight && this.state.canvasWidth) ? <ProcessingView sketch={this._sketch} /> : null }
+                    { (this.state.canvasHeight && this.state.canvasWidth) ? <GLView onContextCreate={this.onContextCreate} /> : null }
                 </View>
                 <Text style={styles.footer}>
                     {
@@ -80,40 +81,47 @@ class App extends React.Component {
         );
     }
 
-    _sketch = p => {
+    onContextCreate = async (gl) => {
+        this.ctx = new Expo2DContext(gl, { renderWithOffscreenBuffer: true });
 
-        let curve1;
-        let curve2;
-        p.setup = () => {
-            p.frameRate(30);
+        let x = 100;
+        let y = 100;
+        let width = this.state.canvasWidth - 2 * x;
+        let height = this.state.canvasHeight / 3;
+        this.curve1 = new Curve(this.ctx, x, y, width, height);
+        this.curve1.setType(this.curve1.TYPE_BAR);
+        this.curve1.showXMark(true);
+        this.curve1.setNumXMarks(5);
+        this.curve1.showXNumbers(true);
+        this.curve1.setXSpan(orientation.SAMPLING_FREQ / 4);
 
-            curve1 = new Curve(
-                p, this.state.canvasX, this.state.canvasY,
-                this.state.canvasWidth, this.state.canvasHeight
-            );
-            curve1.setType(curve1.TYPE_BAR);
-            curve1.setLineColor(252, 3, 61);
-            curve1.setLineWeight(6);
-            curve1.showXMark(true);
-            curve1.setNumXMarks(3);
-            
-            curve2 = new Curve(
-                p, this.state.canvasX, this.state.canvasY + this.state.canvasHeight + 50,
-                this.state.canvasWidth, this.state.canvasHeight
-            );
-            curve2.setType(curve2.TYPE_LINE);
-            curve2.setLineColor(252, 3, 61);
-            curve2.setLineWeight(6);
-            curve2.showYMark(true);
-            curve2.setNumYMarks(4);
+        this.curve2 = new Curve(this.ctx, x, y + height + 50, width, height);
+        this.curve2.setType(this.curve2.TYPE_LINE);
+        this.curve2.showYMark(true);
+        this.curve2.setNumYMarks(4);
+        this.curve2.showYNumbers(true);
+        this.curve2.setYSpan(10);
+
+        try {
+            await this.ctx.initializeText();
+            this.ctx.font = '75pt sans-serif';
+            this.frameID = requestAnimationFrame(this.draw);
+        } catch (e) {
+            console.log(e);
         }
+    }
+
+    draw = () => {
+        this.ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+
+        this.curve1.draw(orientation.data.spectrum.slice(0, orientation.SAMPLING_FREQ / 2));
+        this.curve2.draw(orientation.data.freqHistory);
         
-        p.draw = () => {
-            p.background(255);
-            curve1.draw(orientation.data.spectrum);
-            curve2.draw(orientation.data.freqHistory);
-        }
-    };
+        this.ctx.flush();
+        this.frameID = requestAnimationFrame(this.draw);
+    }
 }
 
 

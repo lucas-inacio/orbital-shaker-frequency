@@ -1,11 +1,13 @@
+import ThreeAxisSensor from "expo-sensors/build/ThreeAxisSensor";
+
 class Curve {
 
     TYPE_BAR = 1;
     TYPE_LINE = 2;
     MARK_SIZE = 10;
 
-    constructor(pInstance, x, y, width, height) {
-        this.pInstance = pInstance;
+    constructor(ctx, x, y, width, height) {
+        this.ctx = ctx;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -13,15 +15,27 @@ class Curve {
         this.margin = 20;
         this.drawCurveRef = this._drawLine;
         this.properties = {
-            lineColor: { r: 0, g: 0, b: 0}, 
-            lineWeight: 3,
-            frameColor: { r: 0, g: 0, b: 0},
-            fill: { r: 0, g: 0, b: 0},
+            lineColor: 'red',
+            frameColor: 'black', 
+            lineWidth: 6,
+            fontSize: 20,
             numXMarks: 2,
             numYMarks: 2,
             showXMark: false,
             showYMark: false,
+            showXNumbers: false,
+            showYNumbers: false,
+            xSpan: 1,
+            ySpan: 1
         }
+    }
+
+    setXSpan(xSpan) {
+        this.properties.xSpan = xSpan;
+    }
+
+    setYSpan(ySpan) {
+        this.properties.ySpan = ySpan;
     }
 
     showXMark(show) {
@@ -30,6 +44,14 @@ class Curve {
 
     showYMark(show) {
         this.properties.showYMark = show;
+    }
+
+    showXNumbers(show) {
+        this.properties.showXNumbers = show;
+    }
+
+    showYNumbers(show) {
+        this.properties.showYNumbers = show;
     }
 
     setNumXMarks(size) {
@@ -55,12 +77,16 @@ class Curve {
     _drawLine(samples) {
         const size = samples.length;
         const step = (this.width -  2 * this.margin) / size;
-        this.pInstance.beginShape();
         
+        this.ctx.strokeStyle = this.properties.lineColor;
+        this.ctx.lineWidth = this.properties.lineWidth;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2);
+
         for (let i = 0; i < size; ++i) {
-            const xCoord = i * step;
-            const yCoord = samples[i].y * (this.height / 2 - this.margin);
-            const ySignal = (yCoord / Math.abs(yCoord)) || 0;
+            let xCoord = i * step;
+            let yCoord = samples[i].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
+            let ySignal = (yCoord / Math.abs(yCoord)) || 0;
             yCoord = Math.abs(yCoord);
 
             // Don't go beyond the limits
@@ -69,21 +95,23 @@ class Curve {
                 yCoord -= (yCoord - (this.height / 2 - this.margin));
             }
 
-            this.pInstance.vertex(                
-                this.margin + this.x + i * step,
+            this.ctx.lineTo(
+                this.margin + this.x + i * step, 
                 this.y + this.height / 2 - ySignal * yCoord);
         }
-            
-        this.pInstance.endShape();
+        this.ctx.stroke();
     }
 
     _drawBar(samples) {
         const size = samples.length;
         const step = (this.width - 2 * this.margin) / size;
-        
+
+        this.ctx.strokeStyle = this.properties.lineColor;
+        this.ctx.lineWidth = this.properties.lineWidth;
+
         for (let i = 0; i < size; ++i) {
             const xCoord = i * step;
-            const yCoord = samples[i].y * (this.height / 2 - this.margin);
+            const yCoord = samples[i].y * (this.height / 2 - this.margin) / this.properties.ySpan;
             const ySignal = yCoord / Math.abs(yCoord);
             yCoord = Math.abs(yCoord);
 
@@ -95,41 +123,55 @@ class Curve {
 
             x = this.margin + this.x + i * step;
             y = this.y + this.height / 2 - ySignal * yCoord;
-            this.pInstance.line(x, this.y + this.height / 2, x, y);
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, this.y + this.height / 2);
+            this.ctx.lineTo(x, y);
+            this.ctx.stroke();
         }
 
     }
 
     drawCurve(samples) {
-        
-        // Draws the curve
-        this.pInstance.noFill();
-        this.pInstance.stroke(
-            this.properties.lineColor.r,
-            this.properties.lineColor.g,
-            this.properties.lineColor.b);
         this.drawCurveRef(samples);
     }
 
     drawFrame() {
-        // Draws frame
-        this.pInstance.noFill(255);
-        this.pInstance.stroke(
-            this.properties.frameColor.r,
-            this.properties.frameColor.g,
-            this.properties.frameColor.b);
-        this.pInstance.line(this.x + this.margin, this.y, this.x + this.margin, this.y + this.height);
-        this.pInstance.line(this.x + this.margin, this.y + this.height / 2, this.x + this.width - this.margin, this.y + this.height / 2);
+        this.ctx.strokeStyle = this.properties.frameColor;
+        this.ctx.lineWidth = this.properties.lineWidth;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.x + this.margin, this.y);
+        this.ctx.lineTo(this.x + this.margin, this.y + this.height);
+        this.ctx.stroke();
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.x + this.margin, this.y + this.height / 2);
+        this.ctx.lineTo(this.x + this.width - this.margin, this.y + this.height / 2);
+        this.ctx.stroke();
 
         // Draws marks on axes
-        this.pInstance.strokeWeight(3);
+        this.ctx.lineWidth = 3;
+        this.ctx.fillStyle = 'black';
+        this.ctx.font = 'bold ' + this.properties.fontSize + 'pt sans-serif';
         if (this.properties.showXMark) {
             const step = (this.width - 2 * this.margin) / this.properties.numXMarks;
 
-            y = this.y + this.height / 2;
+            let y = this.y + this.height / 2;
             for (let i = 1; i < this.properties.numXMarks; ++i) {
-                x = this.x + this.margin + i * step;
-                this.pInstance.line(x, y + this.MARK_SIZE, x, y - this.MARK_SIZE);
+                let x = this.x + this.margin + i * step;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + this.MARK_SIZE);
+                this.ctx.lineTo(x, y - this.MARK_SIZE);
+                this.ctx.stroke();
+
+                if (this.properties.showXNumbers) {
+                    let pos = Math.round((this.properties.xSpan / this.properties.numXMarks) * i * 10) / 10;
+                    this.ctx.fillText(
+                        '' + pos,
+                        x,
+                        y + 2 * this.MARK_SIZE + 2 * this.properties.fontSize + 10
+                    );
+                }
             }
         }
 
@@ -138,31 +180,44 @@ class Curve {
             x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
                 y = this.y + this.margin + i * step;
-                this.pInstance.line(x - this.MARK_SIZE, y, x + this.MARK_SIZE, y);
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - this.MARK_SIZE, y);
+                this.ctx.lineTo(x + this.MARK_SIZE, y);
+                this.ctx.stroke();
+
+                if (this.properties.showYNumbers) {
+                    let pos = Math.round(-(this.properties.ySpan / this.properties.numYMarks) * (i - this.properties.numYMarks / 2) * 10) / 10;
+                    // let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
+                    this.ctx.fillText(
+                        '' + pos, 
+                        x - (this.MARK_SIZE + this.properties.fontSize + 15),
+                        y + (this.MARK_SIZE + this.properties.fontSize + 12)
+                    );
+                }
             }
         }
     }
 
     draw(samples) {
-        this.pInstance.strokeWeight(this.properties.lineWeight);
-        this.drawCurve(samples);
+        this.ctx.save();
+
         this.drawFrame();
+        if (samples.length > 0)
+            this.drawCurve(samples);
+
+        this.ctx.restore();
     }
 
-    setLineColor(r, g, b) {
-        this.properties.lineColor.r = r;
-        this.properties.lineColor.g = g;
-        this.properties.lineColor.b = b;
+    setLineColor(lineColor) {
+        this.properties.lineColor = lineColor;
     }
 
-    setFrameColor(r, g, b) {
-        this.properties.frameColor.r = r;
-        this.properties.frameColor.g = g;
-        this.properties.frameColor.b = b;
+    setFrameColor(frameColor) {
+        this.properties.frameColor = frameColor;
     }
 
-    setLineWeight(weight) {
-        this.properties.lineWeight = weight;
+    setLineWidth(lineWidth) {
+        this.properties.lineWidth = lineWidth;;
     }
 }
 
