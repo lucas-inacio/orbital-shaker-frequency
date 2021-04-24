@@ -100,7 +100,7 @@ class App extends React.Component {
         this.curve2.showYMark(true);
         this.curve2.setNumYMarks(4);
         this.curve2.showYNumbers(true);
-        this.curve2.setYSpan(10);
+        this.curve2.setYSpan(20);
 
         try {
             await this.ctx.initializeText();
