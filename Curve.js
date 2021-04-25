@@ -1,5 +1,3 @@
-import ThreeAxisSensor from "expo-sensors/build/ThreeAxisSensor";
-
 class Curve {
 
     TYPE_BAR = 1;
