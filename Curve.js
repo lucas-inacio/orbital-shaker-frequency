@@ -187,7 +187,6 @@ class Curve {
 
                 if (this.properties.showYNumbers) {
                     let pos = Math.round(-(this.properties.ySpan / this.properties.numYMarks) * (i - this.properties.numYMarks / 2) * 10) / 10;
-                    // let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
                     this.ctx.fillText(
                         '' + pos, 
                         x - (this.MARK_SIZE + this.properties.fontSize + 15),

@@ -26,11 +26,8 @@ class Orientation {
     }
 
     computeSignalSpectrum(signal) {
-        // const spectrum = this.getSpectrum(signal);
-        // const frequency = this.dominantFrequency(spectrum);
         this.getSpectrum(signal);
         const frequency = this.dominantFrequency();
-        // this.data.spectrum = spectrum;
         return frequency;
     }
 
@@ -42,16 +39,13 @@ class Orientation {
         let fft = new FFT(signal.length, samplingFreq);
         fft.forward(signal);
 
-        // let spectrum = [];
         // First 64 samples
         for (let i = 0; i < fft.spectrum.length / 2; ++i) {
-            // spectrum.push({x: i / 2, y: fft.spectrum[i]});
             this.data.spectrum[i] = {x: i / 2, y: fft.spectrum[i]};
         }
-        // return spectrum;
     }
 
-    dominantFrequency(/*spectrum*/) {
+    dominantFrequency() {
         let biggest = 0;
         for (let i = 1; i < this.data.spectrum.length; ++i) {
             if (this.data.spectrum[i].y > this.data.spectrum[biggest].y)
