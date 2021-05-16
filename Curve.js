@@ -79,9 +79,16 @@ class Curve {
         this.ctx.strokeStyle = this.properties.lineColor;
         this.ctx.lineWidth = this.properties.lineWidth;
         this.ctx.beginPath();
-        this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2);
+        // this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2);
 
-        for (let i = 0; i < size; ++i) {
+        let yStart = samples[0].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
+        let yStartSignal = (yStart / Math.abs(yStart)) || 0;
+        if (yStart > (this.height / 2 - this.margin)) {
+            yStart -= (yStart - (this.height / 2 - this.margin));
+        }
+        this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2 - yStartSignal * yStart);
+
+        for (let i = 1; i < size; ++i) {
             let xCoord = i * step;
             let yCoord = samples[i].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
             let ySignal = (yCoord / Math.abs(yCoord)) || 0;
