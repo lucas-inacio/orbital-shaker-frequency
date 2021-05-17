@@ -87,7 +87,7 @@ class App extends React.Component {
         let x = 100;
         let y = 100;
         let width = this.state.canvasWidth - 2 * x;
-        let height = this.state.canvasHeight / 2;
+        let height = this.state.canvasHeight / 1.3;
         // this.curve1 = new Curve(this.ctx, x, y, width, height);
         // this.curve1.setType(this.curve1.TYPE_BAR);
         // this.curve1.showXMark(true);

@@ -194,7 +194,7 @@ class Curve {
                     let pos = Math.round(-(this.properties.ySpan / this.properties.numYMarks) * (i - this.properties.numYMarks / 2) * 10) / 10;
                     this.ctx.fillText(
                         '' + pos, 
-                        x - (this.MARK_SIZE + this.properties.fontSize + 15),
+                        x - (this.MARK_SIZE + this.properties.fontSize + 27),
                         y + (this.MARK_SIZE + this.properties.fontSize + 12)
                     );
                 }
