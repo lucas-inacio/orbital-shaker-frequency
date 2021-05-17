@@ -11,7 +11,7 @@ const Stack = createStackNavigator();
 function App() {
     return (
         <NavigationContainer>
-            <Stack.Navigator>
+            <Stack.Navigator initialRouteName="Main">
                 <Stack.Screen name="Main" component={Main} options={{ title: 'Amostragem'}} />
                 <Stack.Screen name="Config" component={Config} options={{ title: 'Configuração' }} />
             </Stack.Navigator>

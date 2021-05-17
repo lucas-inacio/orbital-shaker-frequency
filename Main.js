@@ -9,10 +9,14 @@ import Curve from './Curve';
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
 
+const Separator = () => (
+    <View style={styles.separator} />
+);
+
 class Main extends React.Component {
-    constructor({navigation, ...props}) {
-        super({navigation, props});
-        this.navigation = navigation;
+    constructor(props) {
+        super(props);
+        this.navigation = props.navigation;
         this.state = {
           x: 0,
           y: 0,
@@ -60,8 +64,17 @@ class Main extends React.Component {
                 <Text style={styles.text}>
                     {'' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'}
                 </Text>
-                <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
-                <Button title="Configurar" disabled={this.state.interval ? true : false} onPress={() => this.navigation.navigate('Config')} style={styles.button} />
+                <View>
+                    <Button
+                        title={this.state.interval ? 'Parar' : 'Iniciar'}
+                        onPress={this.state.interval ? () => this.stop() : () => this.start()}
+                        style={styles.button} />
+                    <Separator />
+                    <Button 
+                        title="Configurar" disabled={this.state.interval ? true : false}
+                        onPress={() => this.navigation.navigate('Config')}
+                        style={styles.button} />
+                </View>
                 <View style={styles.canvas} onLayout={(e) => {
                     let x = 100;
 
@@ -129,8 +142,9 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         backgroundColor: '#fff',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        height: '100%'
+        justifyContent: 'center',
+        height: '100%',
+
     },
     buttonContainer: {
         flex: 1,
@@ -139,12 +153,8 @@ const styles = StyleSheet.create({
         color: 'white',
         backgroundColor: '#0497c4'
     },
-    button: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: '#0497c4',
-        marginVertical: '5px',
-        minWidth: '300px'
+    separator: {
+        marginVertical: 8
     },
     text: {
         flex: 1,
