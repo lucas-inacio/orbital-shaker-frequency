@@ -88,12 +88,6 @@ class App extends React.Component {
         let y = 100;
         let width = this.state.canvasWidth - 2 * x;
         let height = this.state.canvasHeight / 1.3;
-        // this.curve1 = new Curve(this.ctx, x, y, width, height);
-        // this.curve1.setType(this.curve1.TYPE_BAR);
-        // this.curve1.showXMark(true);
-        // this.curve1.setNumXMarks(5);
-        // this.curve1.showXNumbers(true);
-        // this.curve1.setXSpan(orientation.SAMPLING_FREQ / 4);
 
         this.curve2 = new Curve(this.ctx, x, y, width, height);
         this.curve2.setType(this.curve2.TYPE_LINE);
@@ -116,7 +110,6 @@ class App extends React.Component {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
-        // this.curve1.draw(orientation.data.spectrum.slice(0, orientation.SAMPLING_FREQ / 2));
         let rpm = [];
         for (let freq of orientation.data.freqHistory)
             rpm.push({x: freq.x, y: freq.y * 60});
