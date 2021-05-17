@@ -57,7 +57,7 @@ class App extends React.Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.text}>
-                    {'' + (Math.round(this.state.freq * 10) / 10) + 'Hz'}
+                    {'' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'}
                 </Text>
                 <Button title={this.state.interval ? 'Parar' : 'Iniciar'} onPress={this.state.interval ? () => this.stop() : () => this.start()} style={styles.button} />
                 <View style={styles.canvas} onLayout={(e) => {
@@ -87,20 +87,20 @@ class App extends React.Component {
         let x = 100;
         let y = 100;
         let width = this.state.canvasWidth - 2 * x;
-        let height = this.state.canvasHeight / 3;
-        this.curve1 = new Curve(this.ctx, x, y, width, height);
-        this.curve1.setType(this.curve1.TYPE_BAR);
-        this.curve1.showXMark(true);
-        this.curve1.setNumXMarks(5);
-        this.curve1.showXNumbers(true);
-        this.curve1.setXSpan(orientation.SAMPLING_FREQ / 4);
+        let height = this.state.canvasHeight / 2;
+        // this.curve1 = new Curve(this.ctx, x, y, width, height);
+        // this.curve1.setType(this.curve1.TYPE_BAR);
+        // this.curve1.showXMark(true);
+        // this.curve1.setNumXMarks(5);
+        // this.curve1.showXNumbers(true);
+        // this.curve1.setXSpan(orientation.SAMPLING_FREQ / 4);
 
-        this.curve2 = new Curve(this.ctx, x, y + height + 50, width, height);
+        this.curve2 = new Curve(this.ctx, x, y, width, height);
         this.curve2.setType(this.curve2.TYPE_LINE);
         this.curve2.showYMark(true);
-        this.curve2.setNumYMarks(4);
+        this.curve2.setNumYMarks(8);
         this.curve2.showYNumbers(true);
-        this.curve2.setYSpan(20);
+        this.curve2.setYSpan(1440);
 
         try {
             await this.ctx.initializeText();
@@ -116,8 +116,11 @@ class App extends React.Component {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
-        this.curve1.draw(orientation.data.spectrum.slice(0, orientation.SAMPLING_FREQ / 2));
-        this.curve2.draw(orientation.data.freqHistory);
+        // this.curve1.draw(orientation.data.spectrum.slice(0, orientation.SAMPLING_FREQ / 2));
+        let rpm = [];
+        for (let freq of orientation.data.freqHistory)
+            rpm.push({x: freq.x, y: freq.y * 60});
+        this.curve2.draw(rpm);
         
         this.ctx.flush();
         this.frameID = requestAnimationFrame(this.draw);
@@ -148,7 +151,7 @@ const styles = StyleSheet.create({
     },
     text: {
         flex: 1,
-        fontSize: 100
+        fontSize: 70
     },
     footer: {
         flex: 1,
