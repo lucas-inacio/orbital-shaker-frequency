@@ -4,7 +4,8 @@ import { FFT } from './lib/dsp/dsp';
 class Orientation {
     STABILIZATION_TIME_SEC = 4;
     UPDATE_INTERVAL_SEC = 0.015625; // 1/64
-    MAX_SAMPLES = 128;
+    // UPDATE_INTERVAL_SEC = 0.0078125; // 1/128
+    MAX_SAMPLES = 256;
     SAMPLING_FREQ = 64;
     constructor() {
         this.data = {
@@ -26,22 +27,22 @@ class Orientation {
     }
 
     computeSignalSpectrum(signal) {
-        this.getSpectrum(signal);
+        this.getSpectrum(signal, this.SAMPLING_FREQ);
         const frequency = this.dominantFrequency();
         return frequency;
     }
 
-    getSpectrum (points, samplingFreq=64) {
+    getSpectrum (points, samplingFreq) {
         let signal = []
-        for (point of points)
+        for (let point of points)
             signal.push(point.y);
 
         let fft = new FFT(signal.length, samplingFreq);
         fft.forward(signal);
 
-        // First 64 samples
+        // First 128 samples
         for (let i = 0; i < fft.spectrum.length / 2; ++i) {
-            this.data.spectrum[i] = {x: i / 2, y: fft.spectrum[i]};
+            this.data.spectrum[i] = {x: i * this.SAMPLING_FREQ / this.MAX_SAMPLES, y: fft.spectrum[i]};
         }
     }
 
