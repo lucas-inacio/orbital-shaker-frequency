@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button, Switch, Text, View } from 'react-native';
 import InputSpinner from 'react-native-input-spinner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 function Config() {
     const [ config, setConfig ] = useState({ minuteCounter: 1, timerEnabled: false });
-    // const [ isTimerEnabled, setTimerEnabled ] = useState(false);
 
     useEffect(() => {
         async function read() {
@@ -25,6 +25,10 @@ function Config() {
         try {
             const jsonValue = JSON.stringify(config);
             await AsyncStorage.setItem('@config', jsonValue);
+            Toast.show({
+                text1: 'Sucesso',
+                text2: 'Configurações salvas'
+            });
         } catch (e) {
         }
     };
