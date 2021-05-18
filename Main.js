@@ -29,7 +29,7 @@ class Main extends React.Component {
           canvasHeight: null,
           canvasX: null,
           canvasY : null,
-          config: null
+          config: { minuteCounter: 1, timerEnabled: false }
         };
         this.removeListener = null;
         // Used to normalize the plots
@@ -40,7 +40,8 @@ class Main extends React.Component {
         read = async () => {
             try {
                 const value = await AsyncStorage.getItem('@config');
-                this.setState({ config: JSON.parse(value) });
+                if (value !== null)
+                    this.setState({ config: JSON.parse(value) });
             } catch (e) {
             }
         }
