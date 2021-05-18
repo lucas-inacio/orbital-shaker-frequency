@@ -53,20 +53,28 @@ class Main extends React.Component {
     }
 
     componentWillUnmount() {
-        if (this.removeListener)
+        if (this.removeListener) {
             this.removeListener();
+            this.removeListener = null;
+        }
     }
 
     start() {
         activateKeepAwake();
         orientation._subscribe();
+        const timeLimit = this.state.config.minuteCounter * 60 + orientation.STABILIZATION_TIME_SEC;
         const interval = setInterval(() => {
-            this.setState({
-                x: orientation.data.x,
-                y: orientation.data.y,
-                freq: orientation.data.freq,
-                time: orientation.data.accu
-            });
+            if (this.state.config.timerEnabled &&
+                orientation.data.accu >= timeLimit) {
+                this.stop();
+            } else {
+                this.setState({
+                    x: orientation.data.x,
+                    y: orientation.data.y,
+                    freq: orientation.data.freq,
+                    time: orientation.data.accu
+                });
+            }
         }, POLL_INTERVAL_MS);
 
         this.setState({interval});
