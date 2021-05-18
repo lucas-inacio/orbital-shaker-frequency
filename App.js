@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import Config from './Config';
 import Main from './Main';
 

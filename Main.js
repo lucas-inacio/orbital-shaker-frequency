@@ -6,6 +6,8 @@ import { GLView } from 'expo-gl';
 import Expo2DContext from 'expo-2d-context';
 import Curve from './Curve';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
 
@@ -26,10 +28,33 @@ class Main extends React.Component {
           canvasWidth: null,
           canvasHeight: null,
           canvasX: null,
-          canvasY : null
+          canvasY : null,
+          config: null
         };
+        this.removeListener = null;
         // Used to normalize the plots
         this.frequencyFactor = 1 / orientation.SAMPLING_FREQ;
+    }
+
+    componentDidMount() {
+        read = async () => {
+            try {
+                const value = await AsyncStorage.getItem('@config');
+                this.setState({ config: JSON.parse(value) });
+            } catch (e) {
+            }
+        }
+
+        if (!this.removeListener) {
+            this.removeListener = this.navigation.addListener('focus', () => {
+                read();
+            });
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.removeListener)
+            this.removeListener();
     }
 
     start() {
