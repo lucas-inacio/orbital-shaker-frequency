@@ -1,29 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Switch, Text, View } from 'react-native';
 import InputSpinner from 'react-native-input-spinner';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function Config() {
-    const [ isTimerEnabled, setTimerEnabled ] = useState(false);
-    const [time, setTime] = useState(1);
+    const [ config, setConfig ] = useState({ minuteCounter: 1, timerEnabled: false });
+    // const [ isTimerEnabled, setTimerEnabled ] = useState(false);
+
+    useEffect(() => {
+        async function read() {
+            try {
+                const value = await AsyncStorage.getItem('@config');
+                if (value !== null) {
+                    setConfig(JSON.parse(value));
+                }
+            } catch (e) {
+            }
+        }
+
+        read();
+    }, []);
+
+    const saveConfig = async () => {
+        try {
+            const jsonValue = JSON.stringify(config);
+            await AsyncStorage.setItem('@config', jsonValue);
+        } catch (e) {
+        }
+    };
+
     return (
         <View style={Styles.container}>
             <View style={Styles.row}>
                 <Text style={Styles.text}>Habilitar contador?</Text>
-                <Switch title="Definir tempo?" onValueChange={() => setTimerEnabled(!isTimerEnabled)} value={isTimerEnabled} />
+                <Switch 
+                    title="Definir tempo?"
+                    onValueChange={(value) => {
+                        setConfig({ minuteCounter: config.minuteCounter, timerEnabled: value });
+                    }} 
+                    value={config.timerEnabled} />
             </View>
-            <View style={isTimerEnabled ? Styles.row : Styles.rowDisabled}>
-                {/* <Text>Tempo do ensaio</Text> */}
+            <View style={config.timerEnabled ? Styles.row : Styles.rowDisabled}>
                 <InputSpinner 
                     max={240} min={1} step={1} longStep={5} 
-                    onChange={(value) => setTime(value)}
-                    disabled={!isTimerEnabled}
+                    onChange={(value) => setConfig({ minuteCounter: value, timerEnabled: config.timerEnabled })}
+                    disabled={!config.timerEnabled}
                     append={<Text style={Styles.textAppended}>minutos</Text>}
-                    value={1} />
+                    value={config.minuteCounter || 1} />
             </View>
-            {/* <View>
-                <Button title="Teste" />
-            </View> */}
-                
+            <Button title="Salvar" onPress={() => saveConfig()} />                
         </View>
     );
 }
