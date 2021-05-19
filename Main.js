@@ -34,6 +34,7 @@ class Main extends React.Component {
         this.removeListener = null;
         // Used to normalize the plots
         this.frequencyFactor = 1 / orientation.SAMPLING_FREQ;
+        this.frameID = null;
     }
 
     componentDidMount() {
@@ -43,6 +44,7 @@ class Main extends React.Component {
                 if (value !== null)
                     this.setState({ config: JSON.parse(value) });
             } catch (e) {
+                console.log(e);
             }
         }
 
@@ -57,6 +59,11 @@ class Main extends React.Component {
         if (this.removeListener) {
             this.removeListener();
             this.removeListener = null;
+        }
+
+        if (this.frameID) {
+            cancelAnimationFrame(this.frameID);
+            this.frameID = null;
         }
     }
 
@@ -106,7 +113,7 @@ class Main extends React.Component {
                     <Separator />
                     <Button 
                         title="Configurar" disabled={this.state.interval ? true : false}
-                        onPress={() => this.navigation.navigate('Config')}
+                        onPress={this.onConfig}
                         style={styles.button} />
                 </View>
                 <View style={styles.canvas} onLayout={(e) => {
@@ -117,7 +124,7 @@ class Main extends React.Component {
                     let screenHeight = e.nativeEvent.layout.height * pixelRatio;
                     this.setState({ canvasWidth: screenWidth, canvasHeight: screenHeight, canvasX: x, canvasY: x });
                 }}>
-                    { (this.state.canvasHeight && this.state.canvasWidth) ? <GLView onContextCreate={gl => onContextCreate(gl, this)} /> : null }
+                    { (this.state.canvasHeight && this.state.canvasWidth) ? <GLView onContextCreate={this.onContextCreate} /> : null }
                 </View>
                 <Text style={styles.footer}>
                     {
@@ -129,6 +136,62 @@ class Main extends React.Component {
             </View>
         );
     }
+
+    onConfig = () => { 
+        if (this.frameID) {
+            cancelAnimationFrame(this.frameID);
+            this.frameID = null;
+        }
+        this.navigation.navigate('Config');
+    }
+
+    onContextCreate = async (gl) => {
+        this.ctx = new Expo2DContext(gl, { renderWithOffscreenBuffer: true });
+        let x = 100;
+        let y = 100;
+        let width = this.state.canvasWidth - 2 * x;
+        let height = this.state.canvasHeight / 1.3;
+
+        this.curve2 = new Curve(this.ctx, x, y, width, height);
+        this.curve2.setType(this.curve2.TYPE_LINE);
+        this.curve2.showYMark(true);
+        this.curve2.setNumYMarks(8);
+        this.curve2.showYNumbers(true);
+        this.curve2.setYSpan(1440);
+
+        try {
+            this.resetFonts();
+            await this.ctx.initializeText();
+            this.ctx.font = '75pt sans-serif';
+            this.frameID = requestAnimationFrame(this.draw);
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+    draw = () => {
+        this.frameID = requestAnimationFrame(this.draw);
+
+        this.ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+
+        let rpm = [];
+        for (let freq of orientation.data.freqHistory)
+            rpm.push({x: freq.x, y: freq.y * 60});
+        this.curve2.draw(rpm);
+        
+        this.ctx.flush();
+    };
+
+    resetFonts = () => {
+        for (let key of Object.keys(this.ctx.builtinFonts)) {
+            if (this.ctx.builtinFonts[key] !== null) {
+                this.ctx.builtinFonts[key].assets_loaded = false;
+                this.ctx.builtinFonts[key].gl_resources = null;
+            }
+        }
+    };
 }
 
 
@@ -165,56 +228,6 @@ const styles = StyleSheet.create({
         minWidth: '100%'
     }
 });
-
-var ctx = null;
-var onContextCreate = async (gl, main) => {
-    ctx = new Expo2DContext(gl, { renderWithOffscreenBuffer: true });
-    let x = 100;
-    let y = 100;
-    let width = main.state.canvasWidth - 2 * x;
-    let height = main.state.canvasHeight / 1.3;
-
-    main.curve2 = new Curve(ctx, x, y, width, height);
-    main.curve2.setType(main.curve2.TYPE_LINE);
-    main.curve2.showYMark(true);
-    main.curve2.setNumYMarks(8);
-    main.curve2.showYNumbers(true);
-    main.curve2.setYSpan(1440);
-
-    try {
-        resetFonts();
-        await ctx.initializeText();
-        ctx.font = '75pt sans-serif';
-        main.frameID = requestAnimationFrame(() => draw(main));
-    } catch (e) {
-        console.log(e);
-    }
-};
-
-var draw = (main) => {
-    ctx.clearRect(0, 0, main.state.canvasWidth, main.state.canvasHeight);
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, main.state.canvasWidth, main.state.canvasHeight);
-
-    let rpm = [];
-    for (let freq of orientation.data.freqHistory)
-        rpm.push({x: freq.x, y: freq.y * 60});
-    main.curve2.draw(rpm);
-    
-    ctx.flush();
-    main.frameID = requestAnimationFrame(() => draw(main));
-};
-
-// A little hack to make the font work with react-navigation transitions.
-// The context is recreated every transition.
-var resetFonts = () => {
-    for (let key of Object.keys(ctx.builtinFonts)) {
-        if (ctx.builtinFonts[key] !== null) {
-            ctx.builtinFonts[key].assets_loaded = false;
-            ctx.builtinFonts[key].gl_resources = null;
-        }
-    }
-};
 
 export default Main;
 

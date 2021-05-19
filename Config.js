@@ -15,6 +15,7 @@ function Config() {
                     setConfig(JSON.parse(value));
                 }
             } catch (e) {
+                console.log(e);
             }
         }
 
@@ -30,6 +31,7 @@ function Config() {
                 text2: 'Configurações salvas'
             });
         } catch (e) {
+            console.log(e);
         }
     };
 
