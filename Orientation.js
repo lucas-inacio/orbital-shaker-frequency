@@ -2,11 +2,12 @@ import { Accelerometer } from "expo-sensors";
 import { FFT } from './lib/dsp/dsp';
 
 class Orientation {
-    STABILIZATION_TIME_SEC = 4;
-    UPDATE_INTERVAL_SEC = 0.015625; // 1/64
     // UPDATE_INTERVAL_SEC = 0.0078125; // 1/128
+    // UPDATE_INTERVAL_SEC = 0.015625; // 1/64
     MAX_SAMPLES = 256;
     SAMPLING_FREQ = 64;
+    UPDATE_INTERVAL_SEC = 1 / this.SAMPLING_FREQ; // 1/64
+    STABILIZATION_TIME_SEC = 4;
     constructor() {
         this.data = {
             accelerometer: null,
@@ -21,9 +22,19 @@ class Orientation {
             freqTop: 0,
             freqSum: 0,
             totalSamples: 0,
+            errorFactor: 1,
+            nonOrbital: false
         }
 
         Accelerometer.setUpdateInterval(this.UPDATE_INTERVAL_SEC * 1000);
+    }
+
+    setErrorFactor(errorFactor) {
+        this.data.errorFactor = errorFactor;
+    }
+
+    setNonOrbital(value) {
+        this.data.nonOrbital = value;
     }
 
     computeSignalSpectrum(signal) {
@@ -33,26 +44,42 @@ class Orientation {
     }
 
     getSpectrum (points, samplingFreq) {
-        let signal = []
+        let signalX = []
         for (let point of points)
-            signal.push(point.y);
+            signalX.push(point.x);
 
-        let fft = new FFT(signal.length, samplingFreq);
-        fft.forward(signal);
+        let fftX = new FFT(signalX.length, samplingFreq);
+        fftX.forward(signalX);
+
+        let signalY = []
+        for (let point of points)
+            signalY.push(point.y);
+
+        let fftY = new FFT(signalY.length, samplingFreq);
+        fftY.forward(signalY);
 
         // First 128 samples
-        for (let i = 0; i < fft.spectrum.length / 2; ++i) {
-            this.data.spectrum[i] = {x: i * this.SAMPLING_FREQ / this.MAX_SAMPLES, y: fft.spectrum[i]};
+        for (let i = 0; i < fftX.spectrum.length / 2; ++i) {
+            // this.data.spectrum[i] = {x: i * this.SAMPLING_FREQ / this.MAX_SAMPLES, y: fft.spectrum[i]};
+            this.data.spectrum[i] = {x: fftX.spectrum[i], y: fftY.spectrum[i]};
         }
     }
 
     dominantFrequency() {
-        let biggest = 0;
-        for (let i = 1; i < this.data.spectrum.length; ++i) {
-            if (this.data.spectrum[i].y > this.data.spectrum[biggest].y)
-                biggest = i;
+        let biggestX = 0;
+        let biggestY = 0;
+        for (let i = 1; i < this.data.spectrum.length / 2; ++i) {
+            if (this.data.spectrum[i].x > this.data.spectrum[biggestX].x)
+                biggestX = i;
+
+            if (this.data.spectrum[i].y > this.data.spectrum[biggestY].y)
+                biggestY = i;
         }
-        return this.data.spectrum[biggest].x;
+
+        if (this.data.nonOrbital)
+            return (biggestX * this.SAMPLING_FREQ / this.MAX_SAMPLES);
+        else
+            return ((biggestX + biggestY) * this.SAMPLING_FREQ / this.MAX_SAMPLES) / 2;
     }
 
     _subscribe() {
@@ -67,7 +94,8 @@ class Orientation {
             this.data.y = accelerometerData.y;
             
             this.data.accu += this.UPDATE_INTERVAL_SEC;
-            this.data.samples.push({x: this.data.accu, y: this.data.x + this.data.y});
+            // this.data.samples.push({x: this.data.accu, y: this.data.x + this.data.y});
+            this.data.samples.push({x: this.data.x, y: this.data.y});
             // Don't let the list grow indefinitely
             if (this.data.samples.length > this.MAX_SAMPLES) {
                 this.data.samples.splice(0, this.data.samples.length - this.MAX_SAMPLES);
@@ -77,7 +105,7 @@ class Orientation {
             // during FFT computation
             if (this.data.accu < this.STABILIZATION_TIME_SEC) return;
             
-            let freq = this.computeSignalSpectrum(this.data.samples);
+            let freq = this.computeSignalSpectrum(this.data.samples) * this.data.errorFactor;
             this.data.freq = freq;
 
             this.data.freqHistory.push({x: this.data.accu, y: this.data.freq});
