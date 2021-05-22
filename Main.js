@@ -160,7 +160,7 @@ class Main extends React.Component {
         curve.showXMark(true);
         curve.setNumXMarks(8);
         curve.showXNumbers(true);
-        curve.setXSpan(orientation.SAMPLING_FREQ / 2 * (orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES));
+        curve.setXSpan(orientation.SAMPLING_FREQ / 2 * (orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES) * this.state.config.errorFactor);
     }
 
     setRPMPlot(curve) {
