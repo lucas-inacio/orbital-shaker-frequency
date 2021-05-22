@@ -168,7 +168,7 @@ const Styles = {
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-evenly',
-        marginVertical: 30,
+        marginVertical: 15,
         opacity: 0.3
     },
     text: {
