@@ -29,7 +29,15 @@ class Main extends React.Component {
           canvasHeight: null,
           canvasX: null,
           canvasY : null,
-          config: { minuteCounter: 1, timerEnabled: false }
+          config: {
+              minuteCounter: 1,
+              timerEnabled: false,
+              showHz: false,
+              errorFactor: 1,
+              showSpectrum: false,
+              errorFactor: 1,
+              nonOrbital: false
+            }
         };
         this.removeListener = null;
         // Used to normalize the plots
@@ -69,6 +77,8 @@ class Main extends React.Component {
 
     start() {
         activateKeepAwake();
+        orientation.setErrorFactor(this.state.config.errorFactor);
+        orientation.setNonOrbital(this.state.config.nonOrbital);
         orientation._subscribe();
         const timeLimit = this.state.config.minuteCounter * 60 + orientation.STABILIZATION_TIME_SEC;
         const interval = setInterval(() => {
@@ -103,7 +113,11 @@ class Main extends React.Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.text}>
-                    {'' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'}
+                    {
+                        this.state.config.showHz ? 
+                            (Math.round(this.state.freq * 10) / 10) + 'Hz' :
+                            '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
+                    }
                 </Text>
                 <View>
                     <Button
@@ -137,6 +151,26 @@ class Main extends React.Component {
         );
     }
 
+    setSpectrumPlot(curve) {
+        curve.setType(curve.TYPE_BAR);
+        curve.showYMark(true);
+        curve.setNumYMarks(8);
+        curve.showYNumbers(true);
+        curve.setYSpan(0.5);
+        curve.showXMark(true);
+        curve.setNumXMarks(8);
+        curve.showXNumbers(true);
+        curve.setXSpan(orientation.SAMPLING_FREQ / 2 * (orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES));
+    }
+
+    setRPMPlot(curve) {
+        curve.setType(curve.TYPE_LINE);
+        curve.showYMark(true);
+        curve.setNumYMarks(8);
+        curve.showYNumbers(true);
+        curve.setYSpan(1440);
+    }
+
     onConfig = () => { 
         if (this.frameID) {
             cancelAnimationFrame(this.frameID);
@@ -153,11 +187,10 @@ class Main extends React.Component {
         let height = this.state.canvasHeight / 1.3;
 
         this.curve2 = new Curve(this.ctx, x, y, width, height);
-        this.curve2.setType(this.curve2.TYPE_LINE);
-        this.curve2.showYMark(true);
-        this.curve2.setNumYMarks(8);
-        this.curve2.showYNumbers(true);
-        this.curve2.setYSpan(1440);
+        if (this.state.config.showSpectrum)
+            this.setSpectrumPlot(this.curve2);
+        else
+            this.setRPMPlot(this.curve2);
 
         try {
             this.resetFonts();
@@ -176,11 +209,18 @@ class Main extends React.Component {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
-        let rpm = [];
-        for (let freq of orientation.data.freqHistory)
-            rpm.push({x: freq.x, y: freq.y * 60});
-        this.curve2.draw(rpm);
-        
+        let data = [];
+        if (this.state.config.showSpectrum) {
+            for (let bin = 0; bin < orientation.data.spectrum.length / 2; ++bin) {
+                let value = (orientation.data.spectrum[bin].x + orientation.data.spectrum[bin].y) / 2;
+                data.push({x: bin * orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES, y: value});
+            }
+        } else {
+            for (let freq of orientation.data.freqHistory)
+                data.push({x: freq.x, y: freq.y * 60});
+        }
+
+        this.curve2.draw(data);
         this.ctx.flush();
     };
 
