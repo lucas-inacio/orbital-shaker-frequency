@@ -1,7 +1,4 @@
 class Curve {
-
-    TYPE_BAR = 1;
-    TYPE_LINE = 2;
     MARK_SIZE = 10;
 
     constructor(ctx, x, y, width, height) {
@@ -11,7 +8,6 @@ class Curve {
         this.width = width;
         this.height = height;
         this.margin = 20;
-        this.drawCurveRef = this._drawLine;
         this.properties = {
             lineColor: 'red',
             frameColor: 'black', 
@@ -44,32 +40,12 @@ class Curve {
         this.properties.showYMark = show;
     }
 
-    showXNumbers(show) {
-        this.properties.showXNumbers = show;
-    }
-
-    showYNumbers(show) {
-        this.properties.showYNumbers = show;
-    }
-
     setNumXMarks(size) {
         this.properties.numXMarks = (size >= 2) ? size : 2;
     }
     
     setNumYMarks(size) {
         this.properties.numYMarks = (size >= 2) ? size : 2;
-    }
-
-    setType(type) {
-        if (type === this.TYPE_BAR) {
-            this.type = this.TYPE_BAR;
-            this.drawCurveRef = this._drawBar;
-        } else if (type === this.TYPE_LINE) {
-            this.type = this.TYPE_LINE;
-            this.drawCurveRef = this._drawLine;
-        } else {
-            throw new Error('Wrong line type');
-        }
     }
 
     _drawLine(samples) {
@@ -87,12 +63,9 @@ class Curve {
         this.ctx.moveTo(this.margin + this.x, this.y + this.height - yStart);
 
         for (let i = 1; i < size; ++i) {
-            let xCoord = i * step;
             let yCoord = samples[i] * (this.height - 2 * this.margin) / this.properties.ySpan;
-            yCoord = Math.abs(yCoord);
 
             // Don't go beyond the limits
-            if (xCoord >= (this.width - this.margin)) break;
             if (yCoord > (this.height - this.margin)) {
                 yCoord -= (yCoord - (this.height - this.margin));
             }
@@ -102,38 +75,6 @@ class Curve {
                 this.y + this.height - yCoord);
         }
         this.ctx.stroke();
-    }
-
-    _drawBar(samples) {
-        const size = samples.length;
-        const step = (this.width - 2 * this.margin) / size;
-
-        this.ctx.strokeStyle = this.properties.lineColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
-
-        for (let i = 0; i < size; ++i) {
-            let yCoord = samples[i] * (this.height / 2 - this.margin);
-            const ySignal = yCoord / Math.abs(yCoord);
-            yCoord = Math.abs(yCoord);
-
-            // Don't go beyond the limits
-            // if (xCoord >= (this.width - this.margin)) break;
-            if (yCoord > (this.height / 2 - this.margin)) {
-                yCoord -= (yCoord - (this.height / 2 - this.margin));
-            }
-
-            const x = this.margin + this.x + i * step;
-            const y = this.y + this.height / 2 - ySignal * yCoord;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, this.y + this.height / 2);
-            this.ctx.lineTo(x, y);
-            this.ctx.stroke();
-        }
-
-    }
-
-    drawCurve(samples) {
-        this.drawCurveRef(samples);
     }
 
     drawFrame() {
@@ -165,14 +106,12 @@ class Curve {
                 this.ctx.lineTo(x, y - this.MARK_SIZE);
                 this.ctx.stroke();
 
-                if (this.properties.showXNumbers) {
-                    let pos = Math.round((this.properties.xSpan / this.properties.numXMarks) * i * 10) / 10;
-                    this.ctx.fillText(
-                        '' + pos,
-                        x,
-                        y + 2 * this.MARK_SIZE + 2 * this.properties.fontSize + 10
-                    );
-                }
+                let pos = Math.round((this.properties.xSpan / this.properties.numXMarks) * i * 10) / 10;
+                this.ctx.fillText(
+                    '' + pos,
+                    x,
+                    y + 2 * this.MARK_SIZE + 2 * this.properties.fontSize + 10
+                );
             }
         }
 
@@ -180,21 +119,18 @@ class Curve {
             const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
             const x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
-                // const y = this.y + this.margin + this.height - i * step;
                 const y = this.y + this.height - i * step;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x - this.MARK_SIZE, y);
                 this.ctx.lineTo(x + this.MARK_SIZE, y);
                 this.ctx.stroke();
 
-                if (this.properties.showYNumbers) {
-                    let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
-                    this.ctx.fillText(
-                        '' + pos, 
-                        x - (this.MARK_SIZE + this.properties.fontSize + 27),
-                        y + (this.MARK_SIZE + this.properties.fontSize + 12)
-                    );
-                }
+                let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
+                this.ctx.fillText(
+                    '' + pos, 
+                    x - (this.MARK_SIZE + this.properties.fontSize + 27),
+                    y + (this.MARK_SIZE + this.properties.fontSize + 12)
+                );
             }
         }
     }
@@ -204,7 +140,7 @@ class Curve {
 
         this.drawFrame();
         if (samples.length > 0)
-            this.drawCurve(samples);
+            this._drawLine(samples);
 
         this.ctx.restore();
     }

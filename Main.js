@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, PixelRatio, StyleSheet, Text, View } from 'react-native';
+import { Button, PixelRatio, StyleSheet, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { GLView } from 'expo-gl';
@@ -35,6 +35,7 @@ class Main extends React.Component {
         };
         this.removeListener = null;
         this.frameID = null;
+        this.lastTimeStamp = Date.now();
     }
 
     componentDidMount() {
@@ -120,10 +121,8 @@ class Main extends React.Component {
     }
 
     setRPMPlot(curve) {
-        curve.setType(curve.TYPE_LINE);
         curve.showYMark(true);
         curve.setNumYMarks(8);
-        curve.showYNumbers(true);
         curve.setYSpan(280);
     }
 
@@ -155,7 +154,6 @@ class Main extends React.Component {
         }
     };
 
-    lastTimeStamp = Date.now()
     draw = () => {
         this.frameID = requestAnimationFrame(this.draw);
 
@@ -169,7 +167,8 @@ class Main extends React.Component {
             this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 
             const data = [];
-            for (let i = orientation.data.freqHistory.length / 2; i < orientation.data.freqHistory.length; ++i)
+            const start = orientation.data.freqHistory.length - orientation.data.freqHistory.length / 4;
+            for (let i = start; i < orientation.data.freqHistory.length; ++i)
                 data.push(orientation.data.freqHistory[i] * 60);
 
             this.curve2.draw(data);
