@@ -147,6 +147,7 @@ class Main extends React.Component {
                             ('Tempo total: ' + ((totalTime > 0) ? totalTime :  0) + 's\nRPM máximo: ' + maxRPM + '\nRPM médio: ' + meanRPM)
                     }
                 </Text>
+                <Text>{Math.round(1000 / orientation.data.delta)}</Text>
             </View>
         );
     }

@@ -5,14 +5,13 @@ class Orientation {
     // UPDATE_INTERVAL_SEC = 0.0078125; // 1/128
     // UPDATE_INTERVAL_SEC = 0.015625; // 1/64
     MAX_SAMPLES = 256;
-    SAMPLING_FREQ = 64;
-    UPDATE_INTERVAL_SEC = 1 / this.SAMPLING_FREQ; // 1/64
-    STABILIZATION_TIME_SEC = 4;
+    SAMPLING_FREQ = 32;
+    SAMPLING_INTERVAL_MS = 1000 / (8 * this.SAMPLING_FREQ);
+    UPDATE_INTERVAL_MS = 1000 / this.SAMPLING_FREQ; // 1/64
+    STABILIZATION_TIME_SEC = 4000;
     constructor() {
         this.data = {
             accelerometer: null,
-            x: 0,
-            y: 0,
             freq: 0,
             accu: 0,
             samples: [],
@@ -23,10 +22,12 @@ class Orientation {
             freqSum: 0,
             totalSamples: 0,
             errorFactor: 1,
-            nonOrbital: false
+            nonOrbital: false,
+            delta: 0,
+            lastTimeStamp: Date.now()
         }
 
-        Accelerometer.setUpdateInterval(this.UPDATE_INTERVAL_SEC * 1000);
+        Accelerometer.setUpdateInterval(this.UPDATE_INTERVAL_MS);
     }
 
     setErrorFactor(errorFactor) {
@@ -39,8 +40,7 @@ class Orientation {
 
     computeSignalSpectrum(signal) {
         this.getSpectrum(signal, this.SAMPLING_FREQ);
-        const frequency = this.dominantFrequency();
-        return frequency;
+        return this.dominantFrequency();
     }
 
     getSpectrum (points, samplingFreq) {
@@ -58,9 +58,8 @@ class Orientation {
         let fftY = new FFT(signalY.length, samplingFreq);
         fftY.forward(signalY);
 
-        // First 128 samples
-        for (let i = 0; i < fftX.spectrum.length / 2; ++i) {
-            // this.data.spectrum[i] = {x: i * this.SAMPLING_FREQ / this.MAX_SAMPLES, y: fft.spectrum[i]};
+        // An orbital shaker will hardly go past 8Hz so we can optimize (32Hz / 4 = 8Hz)
+        for (let i = 0; i < fftX.spectrum.length / 4; ++i) {
             this.data.spectrum[i] = {x: fftX.spectrum[i], y: fftY.spectrum[i]};
         }
     }
@@ -68,7 +67,7 @@ class Orientation {
     dominantFrequency() {
         let biggestX = 0;
         let biggestY = 0;
-        for (let i = 1; i < this.data.spectrum.length / 2; ++i) {
+        for (let i = 1; i < this.data.spectrum.length; ++i) {
             if (this.data.spectrum[i].x > this.data.spectrum[biggestX].x)
                 biggestX = i;
 
@@ -84,18 +83,17 @@ class Orientation {
 
     _subscribe() {
         const sub = Accelerometer.addListener(accelerometerData => {
-            if (accelerometerData.x === NaN ||
-                accelerometerData.y === NaN) {
+            if (isNaN(accelerometerData.x) ||
+                isNaN(accelerometerData.y)) {
             
                 return;
             }
     
-            this.data.x = accelerometerData.x;
-            this.data.y = accelerometerData.y;
+            const x = accelerometerData.x;
+            const y = accelerometerData.y;
             
             this.data.accu += this.UPDATE_INTERVAL_SEC;
-            // this.data.samples.push({x: this.data.accu, y: this.data.x + this.data.y});
-            this.data.samples.push({x: this.data.x, y: this.data.y});
+            this.data.samples.push({x, y});
             // Don't let the list grow indefinitely
             if (this.data.samples.length > this.MAX_SAMPLES) {
                 this.data.samples.splice(0, this.data.samples.length - this.MAX_SAMPLES);
@@ -118,6 +116,10 @@ class Orientation {
                 this.data.freqTop = freq;
             this.data.freqSum += freq;
             this.data.totalSamples++;
+
+            const now = Date.now();
+            this.data.delta = now - this.data.lastTimeStamp;
+            this.data.lastTimeStamp = now;
         });
 
         this.data.accelerometer = sub;
