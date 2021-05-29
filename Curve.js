@@ -148,8 +148,8 @@ class Curve {
         this.ctx.stroke();
         
         this.ctx.beginPath();
-        this.ctx.moveTo(this.x + this.margin, this.y + this.height / 2);
-        this.ctx.lineTo(this.x + this.width - this.margin, this.y + this.height / 2);
+        this.ctx.moveTo(this.x + this.margin, this.y + this.height);
+        this.ctx.lineTo(this.x + this.width - this.margin, this.y + this.height);
         this.ctx.stroke();
 
         // Draws marks on axes
@@ -159,7 +159,7 @@ class Curve {
         if (this.properties.showXMark) {
             const step = (this.width - 2 * this.margin) / this.properties.numXMarks;
 
-            let y = this.y + this.height / 2;
+            let y = this.y + this.height;
             for (let i = 1; i < this.properties.numXMarks; ++i) {
                 let x = this.x + this.margin + i * step;
                 this.ctx.beginPath();
@@ -182,14 +182,14 @@ class Curve {
             const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
             const x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
-                const y = this.y + this.margin + i * step;
+                const y = this.y + this.margin + this.height - i * step;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x - this.MARK_SIZE, y);
                 this.ctx.lineTo(x + this.MARK_SIZE, y);
                 this.ctx.stroke();
 
                 if (this.properties.showYNumbers) {
-                    let pos = Math.round(-(this.properties.ySpan / this.properties.numYMarks) * (i - this.properties.numYMarks / 2) * 10) / 10;
+                    let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
                     this.ctx.fillText(
                         '' + pos, 
                         x - (this.MARK_SIZE + this.properties.fontSize + 27),
