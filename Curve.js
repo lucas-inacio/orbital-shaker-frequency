@@ -80,7 +80,7 @@ class Curve {
         this.ctx.lineWidth = this.properties.lineWidth;
         this.ctx.beginPath();
 
-        let yStart = samples[0].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
+        let yStart = samples[0] * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
         let yStartSignal = (yStart / Math.abs(yStart)) || 0;
         if (yStart > (this.height / 2 - this.margin)) {
             yStart -= (yStart - (this.height / 2 - this.margin));
@@ -89,7 +89,7 @@ class Curve {
 
         for (let i = 1; i < size; ++i) {
             let xCoord = i * step;
-            let yCoord = samples[i].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
+            let yCoord = samples[i] * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
             let ySignal = (yCoord / Math.abs(yCoord)) || 0;
             yCoord = Math.abs(yCoord);
 
@@ -114,8 +114,7 @@ class Curve {
         this.ctx.lineWidth = this.properties.lineWidth;
 
         for (let i = 0; i < size; ++i) {
-            // const xCoord = i * step;
-            const yCoord = samples[i].y * (this.height / 2 - this.margin);
+            let yCoord = samples[i] * (this.height / 2 - this.margin);
             const ySignal = yCoord / Math.abs(yCoord);
             yCoord = Math.abs(yCoord);
 
@@ -125,8 +124,8 @@ class Curve {
                 yCoord -= (yCoord - (this.height / 2 - this.margin));
             }
 
-            x = this.margin + this.x + i * step;
-            y = this.y + this.height / 2 - ySignal * yCoord;
+            const x = this.margin + this.x + i * step;
+            const y = this.y + this.height / 2 - ySignal * yCoord;
             this.ctx.beginPath();
             this.ctx.moveTo(x, this.y + this.height / 2);
             this.ctx.lineTo(x, y);
@@ -181,9 +180,9 @@ class Curve {
 
         if (this.properties.showYMark) {
             const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
-            x = this.x + this.margin;
+            const x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
-                y = this.y + this.margin + i * step;
+                const y = this.y + this.margin + i * step;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x - this.MARK_SIZE, y);
                 this.ctx.lineTo(x + this.MARK_SIZE, y);

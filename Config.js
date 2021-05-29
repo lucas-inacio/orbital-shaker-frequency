@@ -8,11 +8,7 @@ function Config() {
     const [ config, setConfig ] = useState({
         minuteCounter: 1,
         timerEnabled: false,
-        showHz: false,
-        errorFactor: 1,
-        showSpectrum: false,
-        errorFactor: 1,
-        nonOrbital: false
+        errorFactor: 1
     });
 
     useEffect(() => {
@@ -46,54 +42,6 @@ function Config() {
     return (
         <View style={Styles.container}>
             <View style={Styles.row}>
-                <Text style={Styles.text}>Mostrar valor em Hz?</Text>
-                <Switch 
-                    title="Mostrar valor em Hz?"
-                    onValueChange={(value) => {
-                        setConfig({
-                            minuteCounter: config.minuteCounter,
-                            timerEnabled: config.timerEnabled,
-                            showHz: value,
-                            showSpectrum: config.showSpectrum,
-                            errorFactor: config.errorFactor,
-                            nonOrbital: config.nonOrbital
-                        });
-                    }} 
-                    value={config.showHz} />
-            </View>
-            <View style={Styles.row}>
-                <Text style={Styles.text}>Exibir espectro?</Text>
-                <Switch 
-                    title="Exibir espectro?"
-                    onValueChange={(value) => {
-                        setConfig({
-                            minuteCounter: config.minuteCounter,
-                            timerEnabled: config.timerEnabled,
-                            showHz: config.showHz,
-                            showSpectrum: value,
-                            errorFactor: config.errorFactor,
-                            nonOrbital: config.nonOrbital
-                        });
-                    }} 
-                    value={config.showSpectrum} />
-            </View>
-            <View style={Styles.row}>
-                <Text style={Styles.text}>Amostrar apenas eixo x?</Text>
-                <Switch 
-                    title="Apenas eixo x?"
-                    onValueChange={(value) => {
-                        setConfig({
-                            minuteCounter: config.minuteCounter,
-                            timerEnabled: config.timerEnabled,
-                            showHz: config.showHz,
-                            showSpectrum: config.showSpectrum,
-                            errorFactor: config.errorFactor,
-                            nonOrbital: value
-                        });
-                    }} 
-                    value={config.nonOrbital} />
-            </View>
-            <View style={Styles.row}>
                 <Text style={Styles.text}>Habilitar contador?</Text>
                 <Switch 
                     title="Definir tempo?"
@@ -101,10 +49,7 @@ function Config() {
                         setConfig({ 
                             minuteCounter: config.minuteCounter,
                             timerEnabled: value,
-                            showHz: config.showHz,
-                            showSpectrum: config.showSpectrum,
-                            errorFactor: config.errorFactor,
-                            nonOrbital: config.nonOrbital
+                            errorFactor: config.errorFactor
                         });
                     }} 
                     value={config.timerEnabled} />
@@ -115,10 +60,7 @@ function Config() {
                     onChange={(value) => setConfig({
                         minuteCounter: value,
                         timerEnabled: config.timerEnabled,
-                        showHz: config.showHz,
-                        showSpectrum: config.showSpectrum,
-                        errorFactor: config.errorFactor,
-                        nonOrbital: config.nonOrbital
+                        errorFactor: config.errorFactor
                     })}
                     disabled={!config.timerEnabled}
                     prepend={<Text style={Styles.textAppended}> </Text>}
@@ -134,10 +76,7 @@ function Config() {
                     onChange={(value) => setConfig({
                         minuteCounter: config.minuteCounter,
                         timerEnabled: config.timerEnabled,
-                        showHz: config.showHz,
-                        showSpectrum: config.showSpectrum,
-                        errorFactor: value,
-                        nonOrbital: config.nonOrbital
+                        errorFactor: value
                      })}
                     type="real"
                     prepend={<Text style={Styles.textAppended}> </Text>}
