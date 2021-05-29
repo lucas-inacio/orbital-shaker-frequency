@@ -124,7 +124,7 @@ class Main extends React.Component {
         curve.showYMark(true);
         curve.setNumYMarks(8);
         curve.showYNumbers(true);
-        curve.setYSpan(600);
+        curve.setYSpan(280);
     }
 
     onConfig = () => { 

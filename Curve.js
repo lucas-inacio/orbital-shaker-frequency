@@ -74,34 +74,32 @@ class Curve {
 
     _drawLine(samples) {
         const size = samples.length;
-        const step = (this.width -  2 * this.margin) / size;
+        const step = (this.width - 2 * this.margin) / size;
         
         this.ctx.strokeStyle = this.properties.lineColor;
         this.ctx.lineWidth = this.properties.lineWidth;
         this.ctx.beginPath();
 
-        let yStart = samples[0] * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
-        let yStartSignal = (yStart / Math.abs(yStart)) || 0;
-        if (yStart > (this.height / 2 - this.margin)) {
-            yStart -= (yStart - (this.height / 2 - this.margin));
+        let yStart = samples[0] * (this.height - 2 * this.margin) / this.properties.ySpan;
+        if (yStart > (this.height - this.margin)) {
+            yStart -= (yStart - (this.height - this.margin));
         }
-        this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2 - yStartSignal * yStart);
+        this.ctx.moveTo(this.margin + this.x, this.y + this.height - yStart);
 
         for (let i = 1; i < size; ++i) {
             let xCoord = i * step;
-            let yCoord = samples[i] * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
-            let ySignal = (yCoord / Math.abs(yCoord)) || 0;
+            let yCoord = samples[i] * (this.height - 2 * this.margin) / this.properties.ySpan;
             yCoord = Math.abs(yCoord);
 
             // Don't go beyond the limits
             if (xCoord >= (this.width - this.margin)) break;
-            if (yCoord > (this.height / 2 - this.margin)) {
-                yCoord -= (yCoord - (this.height / 2 - this.margin));
+            if (yCoord > (this.height - this.margin)) {
+                yCoord -= (yCoord - (this.height - this.margin));
             }
 
             this.ctx.lineTo(
                 this.margin + this.x + i * step, 
-                this.y + this.height / 2 - ySignal * yCoord);
+                this.y + this.height - yCoord);
         }
         this.ctx.stroke();
     }
@@ -182,7 +180,8 @@ class Curve {
             const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
             const x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
-                const y = this.y + this.margin + this.height - i * step;
+                // const y = this.y + this.margin + this.height - i * step;
+                const y = this.y + this.height - i * step;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x - this.MARK_SIZE, y);
                 this.ctx.lineTo(x + this.MARK_SIZE, y);
