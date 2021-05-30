@@ -79,7 +79,6 @@ class Orientation {
         this.data.freq = 0;
         this.data.accu = 0;
         this.data.samples = [];
-        this.data.spectrum = [];
         this.data.freqHistory = [];
         for (let i = 0; i < this.MAX_SAMPLES; ++i) this.data.samples.push(0);
         for (let i = 0; i < this.MAX_SAMPLES; ++i) this.data.freqHistory.push(0);

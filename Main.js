@@ -7,7 +7,6 @@ import { GLView } from 'expo-gl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Curve from './Curve';
 
-const FPS_INTERVAL = 50;
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
 
@@ -140,12 +139,12 @@ class Main extends React.Component {
     }
 
     onContextCreate = async (gl) => {
-        let x = 0;
-        let y = 0;
-        let width = this.state.canvasWidth - 2 * x;
-        let height = this.state.canvasHeight / 1.5;
+        const x = 0;
+        const y = 0;
+        const width = this.state.canvasWidth;
+        const height = this.state.canvasHeight;
         this.gl = gl;
-        this.gl.viewport(0, 0, width, height);
+        this.gl.viewport(0, 0, this.state.canvasWidth, this.state.canvasHeight);
         this.gl.clearColor(1, 1, 1, 1);
 
         this.curve = new Curve(this.gl, x, y, width, height, this.state.canvasWidth, this.state.canvasHeight);
@@ -167,16 +166,6 @@ class Main extends React.Component {
 
         this.gl.flush();
         this.gl.endFrameEXP();
-    };
-    // Had to do this hack or fonts won't work properly when switching back
-    // to this view
-    resetFonts = () => {
-        for (let key of Object.keys(this.ctx.builtinFonts)) {
-            if (this.ctx.builtinFonts[key] !== null) {
-                this.ctx.builtinFonts[key].assets_loaded = false;
-                this.ctx.builtinFonts[key].gl_resources = null;
-            }
-        }
     };
 }
 
