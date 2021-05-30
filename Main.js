@@ -70,7 +70,7 @@ class Main extends React.Component {
         activateKeepAwake();
         orientation.setErrorFactor(this.state.config.errorFactor);
         orientation._subscribe();
-        const timeLimit = this.state.config.minuteCounter * 60 + orientation.STABILIZATION_TIME_MS / 1000;
+        const timeLimit = this.state.config.minuteCounter * 60000 + orientation.STABILIZATION_TIME_MS;
         const interval = setInterval(() => {
             if (this.state.config.timerEnabled &&
                 orientation.data.accu >= timeLimit) {
