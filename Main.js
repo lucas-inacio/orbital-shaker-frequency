@@ -3,10 +3,9 @@ import { Button, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { GLView } from 'expo-gl';
-import Expo2DContext from 'expo-2d-context';
-import Curve from './Curve';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Curve from './Curve';
 
 const POLL_INTERVAL_MS = 200;
 const orientation = new Orientation();
@@ -20,33 +19,26 @@ class Main extends React.Component {
         super(props);
         this.navigation = props.navigation;
         this.state = {
-          x: 0,
-          y: 0,
-          freq: 0,
-          interval: null,
-          time: 0,
-          canvasWidth: null,
-          canvasHeight: null,
-          canvasX: null,
-          canvasY : null,
-          config: {
-              minuteCounter: 1,
-              timerEnabled: false,
-              showHz: false,
-              errorFactor: 1,
-              showSpectrum: false,
-              errorFactor: 1,
-              nonOrbital: false
-            }
+            freq: 0,
+            interval: null,
+            canvasWidth: null,
+            canvasHeight: null,
+            canvasX: null,
+            canvasY : null,
+            config: {
+                minuteCounter: 1,
+                timerEnabled: false,
+                errorFactor: 1
+            },
+            fontTexture: null
         };
         this.removeListener = null;
-        // Used to normalize the plots
-        this.frequencyFactor = 1 / orientation.SAMPLING_FREQ;
         this.frameID = null;
+        this.lastTimeStamp = Date.now();
     }
 
     componentDidMount() {
-        read = async () => {
+        const read = async () => {
             try {
                 const value = await AsyncStorage.getItem('@config');
                 if (value !== null)
@@ -78,20 +70,14 @@ class Main extends React.Component {
     start() {
         activateKeepAwake();
         orientation.setErrorFactor(this.state.config.errorFactor);
-        orientation.setNonOrbital(this.state.config.nonOrbital);
         orientation._subscribe();
-        const timeLimit = this.state.config.minuteCounter * 60 + orientation.STABILIZATION_TIME_SEC;
+        const timeLimit = this.state.config.minuteCounter * 60000 + orientation.STABILIZATION_TIME_MS;
         const interval = setInterval(() => {
             if (this.state.config.timerEnabled &&
                 orientation.data.accu >= timeLimit) {
                 this.stop();
             } else {
-                this.setState({
-                    x: orientation.data.x,
-                    y: orientation.data.y,
-                    freq: orientation.data.freq,
-                    time: orientation.data.accu
-                });
+                this.setState({freq: orientation.data.freq});
             }
         }, POLL_INTERVAL_MS);
 
@@ -106,19 +92,23 @@ class Main extends React.Component {
     }
 
     render() {
-        const totalTime = Math.round((this.state.time - orientation.STABILIZATION_TIME_SEC) * 10) / 10;
-        const maxRPM = Math.round(orientation.data.freqTop * 60);
-        const meanRPM = (Math.round(orientation.data.freqSum * 60 / orientation.data.totalSamples * 10) / 10) || 0;
-
         return (
             <View style={styles.container}>
                 <Text style={styles.text}>
                     {
-                        this.state.config.showHz ? 
-                            (Math.round(this.state.freq * 10) / 10) + 'Hz' :
-                            '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
+                        '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
                     }
                 </Text>
+                <View style={styles.canvas} onLayout={(e) => {
+                    let x = 100;
+
+                    let pixelRatio = PixelRatio.get();
+                    let screenWidth = e.nativeEvent.layout.width * pixelRatio;
+                    let screenHeight = e.nativeEvent.layout.height * pixelRatio;
+                    this.setState({ canvasWidth: screenWidth, canvasHeight: screenHeight, canvasX: x, canvasY: x });
+                }}>
+                    { (this.state.canvasHeight && this.state.canvasWidth) ? <GLView onContextCreate={this.onContextCreate} /> : null }
+                </View>
                 <View>
                     <Button
                         title={this.state.interval ? 'Parar' : 'Iniciar'}
@@ -130,45 +120,8 @@ class Main extends React.Component {
                         onPress={this.onConfig}
                         style={styles.button} />
                 </View>
-                <View style={styles.canvas} onLayout={(e) => {
-                    let x = 100;
-
-                    let pixelRatio = PixelRatio.get();
-                    let screenWidth = e.nativeEvent.layout.width * pixelRatio;
-                    let screenHeight = e.nativeEvent.layout.height * pixelRatio;
-                    this.setState({ canvasWidth: screenWidth, canvasHeight: screenHeight, canvasX: x, canvasY: x });
-                }}>
-                    { (this.state.canvasHeight && this.state.canvasWidth) ? <GLView onContextCreate={this.onContextCreate} /> : null }
-                </View>
-                <Text style={styles.footer}>
-                    {
-                        (this.state.interval) ? 
-                            ('Tempo: ' + ((totalTime > 0) ? (totalTime + 's\nRPM: ') : 'estabilizando...\nRPM: ') + Math.round(this.state.freq * 60 * 10) / 10 + '\n') :
-                            ('Tempo total: ' + ((totalTime > 0) ? totalTime :  0) + 's\nRPM máximo: ' + maxRPM + '\nRPM médio: ' + meanRPM)
-                    }
-                </Text>
             </View>
         );
-    }
-
-    setSpectrumPlot(curve) {
-        curve.setType(curve.TYPE_BAR);
-        curve.showYMark(true);
-        curve.setNumYMarks(8);
-        curve.showYNumbers(true);
-        curve.setYSpan(0.5);
-        curve.showXMark(true);
-        curve.setNumXMarks(8);
-        curve.showXNumbers(true);
-        curve.setXSpan(orientation.SAMPLING_FREQ / 2 * (orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES) * this.state.config.errorFactor);
-    }
-
-    setRPMPlot(curve) {
-        curve.setType(curve.TYPE_LINE);
-        curve.showYMark(true);
-        curve.setNumYMarks(8);
-        curve.showYNumbers(true);
-        curve.setYSpan(1440);
     }
 
     onConfig = () => { 
@@ -180,57 +133,37 @@ class Main extends React.Component {
     }
 
     onContextCreate = async (gl) => {
-        this.ctx = new Expo2DContext(gl, { renderWithOffscreenBuffer: true });
-        let x = 100;
-        let y = 100;
-        let width = this.state.canvasWidth - 2 * x;
-        let height = this.state.canvasHeight / 1.3;
+        const x = 0;
+        const y = 0;
+        const width = this.state.canvasWidth;
+        const height = this.state.canvasHeight;
+        this.gl = gl;
+        this.gl.viewport(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+        this.gl.clearColor(1, 1, 1, 1);
 
-        this.curve2 = new Curve(this.ctx, x, y, width, height);
-        if (this.state.config.showSpectrum)
-            this.setSpectrumPlot(this.curve2);
-        else
-            this.setRPMPlot(this.curve2);
-
+        this.curve = new Curve(this.gl, x, y, width, height, this.state.canvasWidth, this.state.canvasHeight);
         try {
-            this.resetFonts();
-            await this.ctx.initializeText();
-            this.ctx.font = '75pt sans-serif';
-            this.frameID = requestAnimationFrame(this.draw);
+            await this.curve.setup();
+            requestAnimationFrame(this.draw);
         } catch (e) {
-            console.log(e);
+            console.log('Font problem: ' + e);
         }
+
     };
 
     draw = () => {
-        this.frameID = requestAnimationFrame(this.draw);
+        this.frameID = requestAnimationFrame(this.draw);      
+        // Clear the canvas before we start drawing on it.
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-        this.ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
-        this.ctx.fillStyle = 'white';
-        this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+        const data = [];
+        const start = orientation.data.freqHistory.length - orientation.data.freqHistory.length / 4;
+        for (let i = start; i < orientation.data.freqHistory.length; ++i)
+            data.push(orientation.data.freqHistory[i] * 60);
+        this.curve.draw(data);
 
-        let data = [];
-        if (this.state.config.showSpectrum) {
-            for (let bin = 0; bin < orientation.data.spectrum.length / 2; ++bin) {
-                let value = (orientation.data.spectrum[bin].x + orientation.data.spectrum[bin].y) / 2;
-                data.push({x: bin * orientation.SAMPLING_FREQ / orientation.MAX_SAMPLES, y: value});
-            }
-        } else {
-            for (let freq of orientation.data.freqHistory)
-                data.push({x: freq.x, y: freq.y * 60});
-        }
-
-        this.curve2.draw(data);
-        this.ctx.flush();
-    };
-
-    resetFonts = () => {
-        for (let key of Object.keys(this.ctx.builtinFonts)) {
-            if (this.ctx.builtinFonts[key] !== null) {
-                this.ctx.builtinFonts[key].assets_loaded = false;
-                this.ctx.builtinFonts[key].gl_resources = null;
-            }
-        }
+        this.gl.flush();
+        this.gl.endFrameEXP();
     };
 }
 
@@ -243,7 +176,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-
+        paddingBottom: 20
     },
     buttonContainer: {
         flex: 1,

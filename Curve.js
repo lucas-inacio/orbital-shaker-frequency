@@ -1,20 +1,23 @@
-class Curve {
+import { textVertexShaderSource, vertexShaderSource } from './shaders/vertex';
+import { fragmentShaderSource, textFragmentShaderSource } from './shaders/fragment';
+import { createShader, createProgram, computeTextVertices } from './gl-utils/gl-utils';
+import { Asset } from 'expo-asset';
 
-    TYPE_BAR = 1;
-    TYPE_LINE = 2;
+class Curve {
     MARK_SIZE = 10;
 
-    constructor(ctx, x, y, width, height) {
-        this.ctx = ctx;
+    constructor(gl, x, y, width, height, screenWidth, screenHeight) {
+        this.gl = gl;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.margin = 20;
-        this.drawCurveRef = this._drawLine;
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+        this.margin = 100;
         this.properties = {
-            lineColor: 'red',
-            frameColor: 'black', 
+            lineColor: [1, 0, 0, 1],
+            frameColor: [0, 0, 0, 1], 
             lineWidth: 6,
             fontSize: 20,
             numXMarks: 2,
@@ -26,6 +29,37 @@ class Curve {
             xSpan: 1,
             ySpan: 1
         }
+    }
+
+    initGLResources() {
+        const vertex = createShader(this.gl, this.gl.VERTEX_SHADER, vertexShaderSource);
+        const fragment = createShader(this.gl, this.gl.FRAGMENT_SHADER, fragmentShaderSource);
+        this.program = createProgram(this.gl, vertex, fragment);
+        this.positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+        this.resolutionLocation = this.gl.getUniformLocation(this.program, 'u_resolution');
+        this.colorLocation = this.gl.getUniformLocation(this.program, 'u_inColor');
+        this.positionBuffer = this.gl.createBuffer();
+
+        // Set up text
+        const vertexText = createShader(this.gl, this.gl.VERTEX_SHADER, textVertexShaderSource);
+        const fragmentText = createShader(this.gl, this.gl.FRAGMENT_SHADER, textFragmentShaderSource);
+        this.textProgram = createProgram(this.gl, vertexText, fragmentText);
+
+        this.textBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.text), this.gl.STATIC_DRAW);
+        this.textLocation = this.gl.getUniformLocation(this.textProgram, 'u_texture');
+        this.textResolutionLocation = this.gl.getUniformLocation(this.gl.textProgram, 'u_resolution');
+        this.textCoordLocation = this.gl.getAttribLocation(this.textProgram, 'a_texCoord');
+        
+        this.texture = this.gl.createTexture();
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.fontTexture);
     }
 
     setXSpan(xSpan) {
@@ -44,14 +78,6 @@ class Curve {
         this.properties.showYMark = show;
     }
 
-    showXNumbers(show) {
-        this.properties.showXNumbers = show;
-    }
-
-    showYNumbers(show) {
-        this.properties.showYNumbers = show;
-    }
-
     setNumXMarks(size) {
         this.properties.numXMarks = (size >= 2) ? size : 2;
     }
@@ -60,155 +86,99 @@ class Curve {
         this.properties.numYMarks = (size >= 2) ? size : 2;
     }
 
-    setType(type) {
-        if (type === this.TYPE_BAR) {
-            this.type = this.TYPE_BAR;
-            this.drawCurveRef = this._drawBar;
-        } else if (type === this.TYPE_LINE) {
-            this.type = this.TYPE_LINE;
-            this.drawCurveRef = this._drawLine;
-        } else {
-            throw new Error('Wrong line type');
+    async setup() {
+        this.fontTexture = Asset.fromModule(require('./assets/font.png'));
+        await this.fontTexture.downloadAsync();
+        this.showYMark(true);
+        this.setNumYMarks(8);
+        this.setYSpan(280);
+        this.buildFrame();
+        this.initGLResources();
+    }
+
+    buildFrame() {
+        // Axes
+        this.lines = [
+            this.x + this.margin, this.y + this.margin,
+            this.x + this.margin, this.y + this.height - this.margin,
+            this.x + this.margin, this.y + this.height - this.margin,
+            this.x + this.width - this.margin, this.y + this.height - this.margin
+        ];
+
+        this.text = [];
+
+        // Draw marks on axes
+        const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
+        const x = this.x + this.margin;
+        for (let i = 1; i < this.properties.numYMarks; ++i) {
+            const y = this.y + this.height - this.margin - i * step;
+            this.lines.push(x - this.MARK_SIZE, y, x + this.MARK_SIZE, y);
+
+            // Compute text vertices;
+            const posString = '' + Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
+            this.text.push(
+                ...computeTextVertices(
+                    posString,
+                    x - (this.MARK_SIZE + this.properties.fontSize + 50),
+                    y
+                ));
         }
     }
 
-    _drawLine(samples) {
-        const size = samples.length;
-        const step = (this.width -  2 * this.margin) / size;
-        
-        this.ctx.strokeStyle = this.properties.lineColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
-        this.ctx.beginPath();
-
-        let yStart = samples[0].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
-        let yStartSignal = (yStart / Math.abs(yStart)) || 0;
-        if (yStart > (this.height / 2 - this.margin)) {
-            yStart -= (yStart - (this.height / 2 - this.margin));
-        }
-        this.ctx.moveTo(this.margin + this.x, this.y + this.height / 2 - yStartSignal * yStart);
-
-        for (let i = 1; i < size; ++i) {
-            let xCoord = i * step;
-            let yCoord = samples[i].y * (this.height / 2 - this.margin) / this.properties.ySpan * 2;
-            let ySignal = (yCoord / Math.abs(yCoord)) || 0;
-            yCoord = Math.abs(yCoord);
-
-            // Don't go beyond the limits
-            if (xCoord >= (this.width - this.margin)) break;
-            if (yCoord > (this.height / 2 - this.margin)) {
-                yCoord -= (yCoord - (this.height / 2 - this.margin));
-            }
-
-            this.ctx.lineTo(
-                this.margin + this.x + i * step, 
-                this.y + this.height / 2 - ySignal * yCoord);
-        }
-        this.ctx.stroke();
-    }
-
-    _drawBar(samples) {
+    updateLineData(samples) {
+        let positions = [];
         const size = samples.length;
         const step = (this.width - 2 * this.margin) / size;
 
-        this.ctx.strokeStyle = this.properties.lineColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
-
         for (let i = 0; i < size; ++i) {
-            // const xCoord = i * step;
-            const yCoord = samples[i].y * (this.height / 2 - this.margin);
-            const ySignal = yCoord / Math.abs(yCoord);
-            yCoord = Math.abs(yCoord);
+            let yCoord = samples[i] * (this.height - 2 * this.margin) / this.properties.ySpan;
 
             // Don't go beyond the limits
-            // if (xCoord >= (this.width - this.margin)) break;
-            if (yCoord > (this.height / 2 - this.margin)) {
-                yCoord -= (yCoord - (this.height / 2 - this.margin));
+            if (yCoord > (this.height - 2 * this.margin)) {
+                yCoord -= (yCoord - (this.height - 2 * this.margin));
             }
-
-            x = this.margin + this.x + i * step;
-            y = this.y + this.height / 2 - ySignal * yCoord;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, this.y + this.height / 2);
-            this.ctx.lineTo(x, y);
-            this.ctx.stroke();
+            
+            positions.push(this.margin + this.x + i * step); 
+            positions.push(this.y + this.height - this.margin - yCoord);
         }
 
+        return positions;
     }
 
-    drawCurve(samples) {
-        this.drawCurveRef(samples);
-    }
-
-    drawFrame() {
-        this.ctx.strokeStyle = this.properties.frameColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.x + this.margin, this.y);
-        this.ctx.lineTo(this.x + this.margin, this.y + this.height);
-        this.ctx.stroke();
+    drawText() {
+        this.gl.useProgram(this.textProgram);
+        this.gl.uniform2f(this.textResolutionLocation, this.screenWidth, this.screenHeight);
+        this.gl.uniform1i(this.textLocation, 0);
         
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.x + this.margin, this.y + this.height / 2);
-        this.ctx.lineTo(this.x + this.width - this.margin, this.y + this.height / 2);
-        this.ctx.stroke();
+        this.gl.enableVertexAttribArray(this.textCoordLocation);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textBuffer);
+        this.gl.vertexAttribPointer(this.textCoordLocation, 4, this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, this.text.length / 4);
+    }
 
-        // Draws marks on axes
-        this.ctx.lineWidth = 3;
-        this.ctx.fillStyle = 'black';
-        this.ctx.font = 'bold ' + this.properties.fontSize + 'pt sans-serif';
-        if (this.properties.showXMark) {
-            const step = (this.width - 2 * this.margin) / this.properties.numXMarks;
-
-            let y = this.y + this.height / 2;
-            for (let i = 1; i < this.properties.numXMarks; ++i) {
-                let x = this.x + this.margin + i * step;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y + this.MARK_SIZE);
-                this.ctx.lineTo(x, y - this.MARK_SIZE);
-                this.ctx.stroke();
-
-                if (this.properties.showXNumbers) {
-                    let pos = Math.round((this.properties.xSpan / this.properties.numXMarks) * i * 10) / 10;
-                    this.ctx.fillText(
-                        '' + pos,
-                        x,
-                        y + 2 * this.MARK_SIZE + 2 * this.properties.fontSize + 10
-                    );
-                }
-            }
-        }
-
-        if (this.properties.showYMark) {
-            const step = (this.height - 2 * this.margin) / this.properties.numYMarks;
-            x = this.x + this.margin;
-            for (let i = 1; i < this.properties.numYMarks; ++i) {
-                y = this.y + this.margin + i * step;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x - this.MARK_SIZE, y);
-                this.ctx.lineTo(x + this.MARK_SIZE, y);
-                this.ctx.stroke();
-
-                if (this.properties.showYNumbers) {
-                    let pos = Math.round(-(this.properties.ySpan / this.properties.numYMarks) * (i - this.properties.numYMarks / 2) * 10) / 10;
-                    this.ctx.fillText(
-                        '' + pos, 
-                        x - (this.MARK_SIZE + this.properties.fontSize + 27),
-                        y + (this.MARK_SIZE + this.properties.fontSize + 12)
-                    );
-                }
-            }
-        }
+    drawFrame() {       
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.lines), this.gl.STATIC_DRAW);
+        this.gl.uniform4f(this.colorLocation, 0, 0, 0, 1);
+        this.gl.vertexAttribPointer(this.positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.LINES, 0, this.lines.length / 2);
     }
 
     draw(samples) {
-        this.ctx.save();
-
+        this.drawText();
+        this.gl.useProgram(this.program);
+        this.gl.enableVertexAttribArray(this.positionLocation);
+        this.gl.uniform2f(this.resolutionLocation, this.screenWidth, this.screenHeight);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+        this.gl.lineWidth(6);
         this.drawFrame();
-        if (samples.length > 0)
-            this.drawCurve(samples);
-
-        this.ctx.restore();
+        if (samples.length > 0) {
+            const positions = this.updateLineData(samples);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.DYNAMIC_DRAW);
+            this.gl.uniform4f(this.colorLocation, 1, 0, 0, 1);
+            this.gl.vertexAttribPointer(this.positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            this.gl.drawArrays(this.gl.LINE_STRIP, 0, positions.length / 2);
+        }
+        this.gl.disableVertexAttribArray(this.positionLocation);
     }
 
     setLineColor(lineColor) {
