@@ -1,12 +1,11 @@
 import React from 'react';
-import { Button, PixelRatio, StyleSheet, View } from 'react-native';
+import { Button, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import Orientation from './Orientation';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { GLView } from 'expo-gl';
-import Expo2DContext from 'expo-2d-context';
-import Curve from './Curve';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Curve from './Curve';
 
 const FPS_INTERVAL = 50;
 const POLL_INTERVAL_MS = 200;
@@ -78,7 +77,7 @@ class Main extends React.Component {
                 orientation.data.accu >= timeLimit) {
                 this.stop();
             } else {
-                this.setState({freq: orientation.data.freq});
+                this.setState({freq: orientation.data.fps});
             }
         }, POLL_INTERVAL_MS);
 
@@ -95,6 +94,12 @@ class Main extends React.Component {
     render() {
         return (
             <View style={styles.container}>
+                <Text style={styles.text}>
+                    {
+                        // '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
+                        'FPS: ' + Math.round(this.state.freq)
+                    }
+                </Text>
                 <View style={styles.canvas} onLayout={(e) => {
                     let x = 100;
 
@@ -135,51 +140,33 @@ class Main extends React.Component {
     }
 
     onContextCreate = async (gl) => {
-        this.ctx = new Expo2DContext(gl, { renderWithOffscreenBuffer: true });
-        let x = 100;
-        let y = 200;
+        let x = 0;
+        let y = 0;
         let width = this.state.canvasWidth - 2 * x;
         let height = this.state.canvasHeight / 1.5;
+        this.gl = gl;
+        this.gl.viewport(0, 0, width, height);
+        this.gl.clearColor(1, 1, 1, 1);
 
-        this.curve2 = new Curve(this.ctx, x, y, width, height);
-        this.setRPMPlot(this.curve2);
+        this.curve = new Curve(this.gl, x, y, width, height, this.state.canvasWidth, this.state.canvasHeight);
+        this.setRPMPlot(this.curve);
 
-        try {
-            this.resetFonts();
-            await this.ctx.initializeText();
-            this.ctx.font = '75pt sans-serif';
-            this.frameID = requestAnimationFrame(this.draw);
-        } catch (e) {
-            console.log(e);
-        }
+        requestAnimationFrame(this.draw);
     };
 
     draw = () => {
-        this.frameID = requestAnimationFrame(this.draw);
+        this.frameID = requestAnimationFrame(this.draw);      
+        // Clear the canvas before we start drawing on it.
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-        // Limit FPS
-        const now = Date.now();
-        if (now - this.lastTimeStamp >= FPS_INTERVAL) {
-            this.lastTimeStamp = now;
+        const data = [];
+        const start = orientation.data.freqHistory.length - orientation.data.freqHistory.length / 4;
+        for (let i = start; i < orientation.data.freqHistory.length; ++i)
+            data.push(orientation.data.freqHistory[i] * 60);
+        this.curve.draw(data);
 
-            this.ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
-            this.ctx.fillStyle = 'white';
-            this.ctx.fillRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
-
-            const data = [];
-            const start = orientation.data.freqHistory.length - orientation.data.freqHistory.length / 4;
-            for (let i = start; i < orientation.data.freqHistory.length; ++i)
-                data.push(orientation.data.freqHistory[i] * 60);
-
-            this.curve2.draw(data);
-            this.ctx.fillStyle = 'black';
-            this.ctx.font = 'bold 125pt sans-serif';
-            this.ctx.fillText(Math.round(orientation.data.freq * 60) + 'RPM', 200, 100);
-            this.ctx.font = 'bold 30pt sans-serif';
-            this.ctx.fillText('Tempo total: ' + Math.round(orientation.data.accu / 1000) + 's', 300, this.curve2.height * 0.95);
-            this.ctx.fillText('FPS: ' + Math.round(orientation.data.fps), 300, this.curve2.height * 1.02);
-            this.ctx.flush();
-        }
+        this.gl.flush();
+        this.gl.endFrameEXP();
     };
     // Had to do this hack or fonts won't work properly when switching back
     // to this view

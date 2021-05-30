@@ -1,13 +1,19 @@
+import vertexShaderSource from './shaders/vertex';
+import fragmentShaderSource from './shaders/fragment';
+import { createShader, createProgram } from './gl-utils/gl-utils';
+
 class Curve {
     MARK_SIZE = 10;
 
-    constructor(ctx, x, y, width, height) {
-        this.ctx = ctx;
+    constructor(gl, x, y, width, height, screenWidth, screenHeight) {
+        this.gl = gl;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.margin = 20;
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+        this.margin = 50;
         this.properties = {
             lineColor: 'red',
             frameColor: 'black', 
@@ -22,6 +28,14 @@ class Curve {
             xSpan: 1,
             ySpan: 1
         }
+        this.positions = [];
+
+        const vertex = createShader(this.gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragment = createShader(this.gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        this.program = createProgram(this.gl, vertex, fragment);
+        this.positionAttrib = this.gl.getAttribLocation(this.program, 'a_position');
+        this.resolutionLocation = this.gl.getUniformLocation(this.program, 'u_resolution');
+        this.positionBuffer = this.gl.createBuffer();
     }
 
     setXSpan(xSpan) {
@@ -48,66 +62,57 @@ class Curve {
         this.properties.numYMarks = (size >= 2) ? size : 2;
     }
 
-    _drawLine(samples) {
+    updateLineData(samples) {
+        let positions = [];
         const size = samples.length;
         const step = (this.width - 2 * this.margin) / size;
-        
-        this.ctx.strokeStyle = this.properties.lineColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
-        this.ctx.beginPath();
 
-        let yStart = samples[0] * (this.height - 2 * this.margin) / this.properties.ySpan;
-        if (yStart > (this.height - this.margin)) {
-            yStart -= (yStart - (this.height - this.margin));
-        }
-        this.ctx.moveTo(this.margin + this.x, this.y + this.height - yStart);
-
-        for (let i = 1; i < size; ++i) {
+        for (let i = 0; i < size; ++i) {
             let yCoord = samples[i] * (this.height - 2 * this.margin) / this.properties.ySpan;
 
             // Don't go beyond the limits
             if (yCoord > (this.height - this.margin)) {
                 yCoord -= (yCoord - (this.height - this.margin));
             }
-
-            this.ctx.lineTo(
-                this.margin + this.x + i * step, 
-                this.y + this.height - yCoord);
+            
+            positions.push(this.margin + this.x + i * step); 
+            positions.push(this.y + this.height - yCoord);
         }
-        this.ctx.stroke();
+
+        return positions;
     }
 
     drawFrame() {
-        this.ctx.strokeStyle = this.properties.frameColor;
-        this.ctx.lineWidth = this.properties.lineWidth;
+        this.gl.strokeStyle = this.properties.frameColor;
+        this.gl.lineWidth = this.properties.lineWidth;
 
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.x + this.margin, this.y);
-        this.ctx.lineTo(this.x + this.margin, this.y + this.height);
-        this.ctx.stroke();
+        this.gl.beginPath();
+        this.gl.moveTo(this.x + this.margin, this.y);
+        this.gl.lineTo(this.x + this.margin, this.y + this.height);
+        this.gl.stroke();
         
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.x + this.margin, this.y + this.height);
-        this.ctx.lineTo(this.x + this.width - this.margin, this.y + this.height);
-        this.ctx.stroke();
+        this.gl.beginPath();
+        this.gl.moveTo(this.x + this.margin, this.y + this.height);
+        this.gl.lineTo(this.x + this.width - this.margin, this.y + this.height);
+        this.gl.stroke();
 
         // Draws marks on axes
-        this.ctx.lineWidth = 3;
-        this.ctx.fillStyle = 'black';
-        this.ctx.font = 'bold ' + this.properties.fontSize + 'pt sans-serif';
+        this.gl.lineWidth = 3;
+        this.gl.fillStyle = 'black';
+        this.gl.font = 'bold ' + this.properties.fontSize + 'pt sans-serif';
         if (this.properties.showXMark) {
             const step = (this.width - 2 * this.margin) / this.properties.numXMarks;
 
             let y = this.y + this.height;
             for (let i = 1; i < this.properties.numXMarks; ++i) {
                 let x = this.x + this.margin + i * step;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y + this.MARK_SIZE);
-                this.ctx.lineTo(x, y - this.MARK_SIZE);
-                this.ctx.stroke();
+                this.gl.beginPath();
+                this.gl.moveTo(x, y + this.MARK_SIZE);
+                this.gl.lineTo(x, y - this.MARK_SIZE);
+                this.gl.stroke();
 
                 let pos = Math.round((this.properties.xSpan / this.properties.numXMarks) * i * 10) / 10;
-                this.ctx.fillText(
+                this.gl.fillText(
                     '' + pos,
                     x,
                     y + 2 * this.MARK_SIZE + 2 * this.properties.fontSize + 10
@@ -120,13 +125,13 @@ class Curve {
             const x = this.x + this.margin;
             for (let i = 1; i < this.properties.numYMarks; ++i) {
                 const y = this.y + this.height - i * step;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x - this.MARK_SIZE, y);
-                this.ctx.lineTo(x + this.MARK_SIZE, y);
-                this.ctx.stroke();
+                this.gl.beginPath();
+                this.gl.moveTo(x - this.MARK_SIZE, y);
+                this.gl.lineTo(x + this.MARK_SIZE, y);
+                this.gl.stroke();
 
                 let pos = Math.round((this.properties.ySpan / this.properties.numYMarks) * i * 10) / 10;
-                this.ctx.fillText(
+                this.gl.fillText(
                     '' + pos, 
                     x - (this.MARK_SIZE + this.properties.fontSize + 27),
                     y + (this.MARK_SIZE + this.properties.fontSize + 12)
@@ -136,13 +141,18 @@ class Curve {
     }
 
     draw(samples) {
-        this.ctx.save();
 
-        this.drawFrame();
-        if (samples.length > 0)
-            this._drawLine(samples);
-
-        this.ctx.restore();
+        if (samples.length > 0) {
+            const positions = this.updateLineData(samples);
+            this.gl.enableVertexAttribArray(this.positionAttrib);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.DYNAMIC_DRAW);
+            this.gl.useProgram(this.program);
+            this.gl.uniform2f(this.resolutionLocation, this.screenWidth, this.screenHeight);
+            this.gl.vertexAttribPointer(this.positionAttrib, 2, this.gl.FLOAT, false, 0, 0);
+            this.gl.lineWidth(3);
+            this.gl.drawArrays(this.gl.LINE_STRIP, 0, positions.length / 2);
+        }
     }
 
     setLineColor(lineColor) {
