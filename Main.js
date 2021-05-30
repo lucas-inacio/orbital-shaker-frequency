@@ -128,6 +128,7 @@ class Main extends React.Component {
         curve.showYMark(true);
         curve.setNumYMarks(8);
         curve.setYSpan(280);
+        curve.buildFrame();
     }
 
     onConfig = () => { 
