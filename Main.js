@@ -29,7 +29,8 @@ class Main extends React.Component {
                 minuteCounter: 1,
                 timerEnabled: false,
                 errorFactor: 1
-            }
+            },
+            fontTexture: null
         };
         this.removeListener = null;
         this.frameID = null;
@@ -76,7 +77,7 @@ class Main extends React.Component {
                 orientation.data.accu >= timeLimit) {
                 this.stop();
             } else {
-                this.setState({freq: orientation.data.fps});
+                this.setState({freq: orientation.data.freq});
             }
         }, POLL_INTERVAL_MS);
 
@@ -95,8 +96,7 @@ class Main extends React.Component {
             <View style={styles.container}>
                 <Text style={styles.text}>
                     {
-                        // '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
-                        'FPS: ' + Math.round(this.state.freq)
+                        '' + (Math.round(this.state.freq * 10 * 60) / 10) + 'RPM'
                     }
                 </Text>
                 <View style={styles.canvas} onLayout={(e) => {
@@ -124,13 +124,6 @@ class Main extends React.Component {
         );
     }
 
-    setRPMPlot(curve) {
-        curve.showYMark(true);
-        curve.setNumYMarks(8);
-        curve.setYSpan(280);
-        curve.buildFrame();
-    }
-
     onConfig = () => { 
         if (this.frameID) {
             cancelAnimationFrame(this.frameID);
@@ -149,9 +142,13 @@ class Main extends React.Component {
         this.gl.clearColor(1, 1, 1, 1);
 
         this.curve = new Curve(this.gl, x, y, width, height, this.state.canvasWidth, this.state.canvasHeight);
-        this.setRPMPlot(this.curve);
+        try {
+            await this.curve.setup();
+            requestAnimationFrame(this.draw);
+        } catch (e) {
+            console.log('Font problem: ' + e);
+        }
 
-        requestAnimationFrame(this.draw);
     };
 
     draw = () => {

@@ -29,7 +29,8 @@
     "react-native-screens": "~3.0.0",
     "react-native-toast-message": "^1.4.9",
     "react-native-web": "~0.13.12",
-    "unimodules-permissions-interface": "^6.1.0"
+    "unimodules-permissions-interface": "^6.1.0",
+    "expo-asset": "~8.3.1"
   },
   "devDependencies": {
     "@babel/core": "~7.9.0"

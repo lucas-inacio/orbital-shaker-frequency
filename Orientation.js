@@ -5,7 +5,6 @@ class Orientation {
     MAX_SAMPLES = 256;
     SAMPLING_FREQ = 32;
     SAMPLING_INTERVAL_MS = 1000 / (this.SAMPLING_FREQ);
-    // UPDATE_INTERVAL_MS = 1000 / this.SAMPLING_FREQ;
     UPDATE_INTERVAL_MS = 1000 / (8 * this.SAMPLING_FREQ);
     STABILIZATION_TIME_MS = 4000;
     constructor() {
